@@ -1,0 +1,29 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TEST Form-page</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+<h1>TEST - FORM</h1>
+
+{% if messages %}
+    <ul>
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tegs }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+<form action="{% url 'form' %}" method="POST">
+    {% csrf_token %}
+
+    {{ form }}
+    <input type="submit" value="Submit">
+</form>
+
+</body>
+</html>
