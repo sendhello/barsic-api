@@ -37,8 +37,8 @@ class Reports(View):
         r = datarequest
         datarequest.request_date = datetime.utcnow()
         datarequest.time_type = 'дневной'
-        datarequest.date_from = datetime.utcnow() - timedelta(2)
-        datarequest.date_to = datetime.utcnow() - timedelta(1)
+        datarequest.date_from = datetime.utcnow() - timedelta(22)
+        datarequest.date_to = datetime.utcnow() - timedelta(20)
         datarequest.data = 'JSON{}'
         datarequest.author = 'I'
         print(datarequest.id)
@@ -53,4 +53,4 @@ class Reports(View):
         print(datarequest.data)
         datarequest.save()
         print(DataRequest.objects.all())
-        return render(request, 'reports/reports.html', {'r': r})
+        return render(request, 'reports/reports.html', {'r': 'ffffff'})

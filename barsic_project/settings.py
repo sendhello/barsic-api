@@ -24,7 +24,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -85,7 +85,7 @@ DATABASES = {
         'NAME': 'AquaPark_Ulyanovsk',
         'USER': 'sa',
         'PASSWORD': '1',
-        'HOST': '192.168.2.200\\MSSQL',
+        'HOST': '192.168.2.100',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
             'unicode_results': True,

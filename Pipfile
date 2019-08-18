@@ -9,6 +9,8 @@ verify_ssl = true
 django = "*"
 django-debug-toolbar = "*"
 django-pyodbc-azure = "*"
+pipfile = "*"
+pyodbc = "*"
 
 [requires]
 python_version = "3.6"
