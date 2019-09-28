@@ -11,6 +11,8 @@ django-debug-toolbar = "*"
 django-pyodbc-azure = "*"
 pipfile = "*"
 pyodbc = "*"
+django-solo = "*"
+django-summernote = "*"
 
 [requires]
 python_version = "3.6"

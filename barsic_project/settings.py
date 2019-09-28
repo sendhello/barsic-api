@@ -35,9 +35,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_summernote',
+    'solo.apps.SoloAppConfig',
     'debug_toolbar',
-    'barsloader',
     'reports',
+    'settings'
 ]
 
 MIDDLEWARE = [
@@ -71,7 +73,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'barsic_project.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
@@ -79,21 +80,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    },
-    'aqua': {
-        'ENGINE': 'sql_server.pyodbc',
-        'NAME': 'AquaPark_Ulyanovsk',
-        'USER': 'sa',
-        'PASSWORD': '1',
-        'HOST': '192.168.2.100',
-        'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',
-            'unicode_results': True,
-        }
     }
 }
-
-DATABASE_ROUTERS = ['barsloader.routers.BarsLoaderRouter']
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -134,4 +122,5 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-MEDIA_URL = '/media/'
+MEDIA_URL = '/images/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'images/')
