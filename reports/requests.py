@@ -125,6 +125,10 @@ class AllCompanyReport(ConnectToDatabase):
             }
         return companies
 
+    def get_first_company(self):
+        for company in self.query():
+            return company
+
 
 class TotalReport(ConnectToDatabase):
     def __init__(self, db, date_from=None, date_to=None, hide_zero=None, hide_internal=None):
@@ -144,13 +148,9 @@ class TotalReport(ConnectToDatabase):
 
     def query(self):
         cursor = self.get_cursor()
-        first_company = None
-        for company in AllCompanyReport(self.db).query():
-            first_company = company
-            print(first_company)
-            break
+        company = AllCompanyReport(self.db).get_first_company()
         cursor.execute(
-            f"exec sp_reportOrganizationTotals_v2 @sa={first_company},@from='{self.date_from}',"
+            f"exec sp_reportOrganizationTotals_v2 @sa={company},@from='{self.date_from}',"
             f"@to='{self.date_to}',@hideZeroes={self.hide_zero},@hideInternal={self.hide_internal}"
             )
         rows = cursor.fetchall()
@@ -161,7 +161,6 @@ class TotalReport(ConnectToDatabase):
     def to_json(self, rows):
         total_report = {}
         for row in rows:
-            print(row)
             try:
                 total_report[row[7]]
             except KeyError:
@@ -175,3 +174,34 @@ class TotalReport(ConnectToDatabase):
                 'sum': row[0]
             }
         return total_report
+
+
+class ClientCountReport(ConnectToDatabase):
+    def __init__(self, db, date_from=None, date_to=None):
+        super(ClientCountReport, self).__init__(db)
+        if date_from is None:
+            date_from = datetime.now().strftime('%Y%m%d 00:00:00')
+        self.date_from = date_from
+        if date_to is None:
+            date_to = (datetime.now() + timedelta(1)).strftime('%Y%m%d 00:00:00')
+        self.date_to = date_to
+
+    def query(self):
+        cursor = self.get_cursor()
+        company = AllCompanyReport(self.db).get_first_company()
+        cursor.execute(
+            f"exec sp_reportClientCountTotals @sa={company},"
+            f"@from='{self.date_from}',@to='{self.date_to}',@categoryId=0"
+        )
+        rows = cursor.fetchall()
+        if not rows:
+            return {}
+        return self.to_json(rows)
+
+    def to_json(self, rows):
+        report = {}
+        for row in rows:
+            date = row[0].strftime('%Y%m%d')
+            report[date] = row[1]
+        return report
+
