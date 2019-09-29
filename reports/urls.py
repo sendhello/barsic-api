@@ -16,9 +16,8 @@ Including another URLconf
 from django.conf import settings
 from django.urls import path, include
 
-from reports.views import test, MyView, Reports
+from reports.views import PeoplesInZone
 
 urlpatterns = [
-    path('form/', MyView.as_view(), name='form'),
-    path('', Reports.as_view(), name='index'),
+    path('people-in-zone/', PeoplesInZone.as_view(), name='people-in-zone'),
 ]

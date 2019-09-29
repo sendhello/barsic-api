@@ -1,39 +1,15 @@
-from django.contrib import messages
-from django.shortcuts import render
-from django.views.generic import View
 from django.http import JsonResponse
-from reports.models import DataRequest
+from django.views.generic import View
 
-from reports.forms import MyForm
-from datetime import datetime, timedelta
-from reports.requests import sql_query
-
-
-def test(request):
-    if request.method == 'GET':
-        return render(request, 'reports/test.html')
+from reports.requests import ReportPeoplesInZone
+from settings.models import DataBases
+from django.conf import settings
 
 
-class MyView(View):
+class PeoplesInZone(View):
     def get(self, request):
-        form = MyForm()
-        c = {
-            'form': form,
-        }
-        return render(request, 'reports/form.html', c)
-
-    def post(self, request):
-        form = MyForm(data=request.POST)
-        if form.is_valid():
-            messages.success(request, form.cleaned_data['message'])
-        else:
-            messages.error(request, 'Ошибка авторизации')
-
-        c = {'form': form}
-        return render(request, 'reports/form.html', c)
-
-
-class Reports(View):
-    def get(self, request):
-        r = sql_query()
-        return JsonResponse(r)
+        database_id = request.GET.get(settings.GET_PARAM_DB)
+        if not database_id:
+            return JsonResponse({})
+        peoples_aqua = ReportPeoplesInZone(DataBases.objects.get(id=database_id))
+        return JsonResponse(peoples_aqua.query())

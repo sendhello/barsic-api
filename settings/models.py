@@ -3,23 +3,29 @@ from solo.models import SingletonModel
 
 
 class SettingBase(SingletonModel):
-    db_aqua = models.PositiveIntegerField(
-        'ID БД Bars-Аквапарк',
-        help_text='Числовой id из списка баз данных в разделе "Базы данных"',
-        null=True,
-        blank=True
+    db_aqua = models.ForeignKey(
+        'DataBases',
+        verbose_name='БД Bars-Аквапарк',
+        on_delete=models.SET_NULL,
+        help_text='Значение из списка раздела "Базы данных"',
+        related_name='aqua',
+        null=True
     )
-    db_beach = models.PositiveIntegerField(
-        'ID БД Bars-Пляж',
-        help_text='Числовой id из списка баз данных в разделе "Базы данных"',
-        null=True,
-        blank=True
+    db_beach = models.ForeignKey(
+        'DataBases',
+        verbose_name='БД Bars-Пляж',
+        on_delete=models.SET_NULL,
+        help_text='Значение из списка раздела "Базы данных"',
+        related_name='beach',
+        null=True
     )
-    db_bitrix = models.PositiveIntegerField(
-        'ID БД заказов с сайта',
-        help_text='Числовой id из списка баз данных в разделе "Базы данных"',
-        null=True,
-        blank=True
+    db_bitrix = models.ForeignKey(
+        'DataBases',
+        verbose_name='БД Bitrix',
+        on_delete=models.SET_NULL,
+        help_text='Значение из списка раздела "Базы данных"',
+        related_name='bitrix',
+        null=True
     )
 
     def __str__(self):
@@ -31,24 +37,24 @@ class SettingBase(SingletonModel):
 
 class SettingBitrix(SingletonModel):
     url = models.SlugField(
-        'Адрес сайта',
+        verbose_name='Адрес сайта',
         help_text='Адрес сайта без "http://" и "/", например "exsample.com"',
         null=True
     )
     path = models.CharField(
-        'Путь к обработчику 1С',
+        verbose_name='Путь к обработчику 1С',
         max_length=255,
         help_text='Путь к обработчику 1С на сайте',
         default='/bitrix/admin/1c_exchange.php'
     )
     login = models.CharField(
-        'Логин',
+        verbose_name='Логин',
         max_length=255,
         help_text='Логин админки bitrix',
         null=True
     )
     password = models.CharField(
-        'Пароль',
+        verbose_name='Пароль',
         max_length=255,
         help_text='Пароль админки bitrix',
         null=True
@@ -63,13 +69,13 @@ class SettingBitrix(SingletonModel):
 
 class SettingYandex(SingletonModel):
     token = models.CharField(
-        'Yandex-токен',
+        verbose_name='Yandex-токен',
         max_length=255,
         help_text='Yandex-токен',
         null=True,
     )
     path = models.CharField(
-        'Путь к папке',
+        verbose_name='Путь к папке',
         max_length=255,
         help_text='Путь к папке в Yandex-Диске',
         default='/'
@@ -84,23 +90,23 @@ class SettingYandex(SingletonModel):
 
 class SettingGoogleSheets(SingletonModel):
     credentials_file = models.FileField(
-        'JSON-token',
+        verbose_name='JSON-token',
         upload_to='data/'
     )
     writers = models.TextField(
-        'Список редакторов',
+        verbose_name='Список редакторов',
         help_text='Список email-адресов через запятую',
         null=True,
         blank=True
     )
     readers = models.TextField(
-        'Список зрителей',
+        verbose_name='Список зрителей',
         help_text='Список email-адресов через запятую',
         null=True,
         blank=True
     )
     is_read_all = models.BooleanField(
-        'Разрешить просмотр по ссылке для всех',
+        verbose_name='Разрешить просмотр по ссылке для всех',
         default=False
     )
 
@@ -113,18 +119,18 @@ class SettingGoogleSheets(SingletonModel):
 
 class SettingTelegram(SingletonModel):
     token = models.CharField(
-        'Telegram-токен',
+        verbose_name='Telegram-токен',
         max_length=255,
         help_text='Telegram-токен',
         null=True,
     )
     chanel_id = models.IntegerField(
-        'ID канала',
+        verbose_name='ID канала',
         help_text='ID пользователя или группы',
         null=True
     )
     is_proxy = models.BooleanField(
-        'Использовать прокси',
+        verbose_name='Использовать прокси',
         default=False
     )
     SOCKS4 = 'PROXY_TYPE_SOCKS4'
@@ -136,37 +142,37 @@ class SettingTelegram(SingletonModel):
         (HTTP, 'HTTP'),
     )
     proxy_type = models.CharField(
-        'Тип прокси',
+        verbose_name='Тип прокси',
         max_length=30,
         choices=PROXY_TYPES,
         default=SOCKS5
     )
     proxy_host = models.SlugField(
-        'Адрес прокси-сервера',
+        verbose_name='Адрес прокси-сервера',
         help_text='Адрес сервера без "http://" и "/"',
         null=True,
         blank=True
     )
     proxy_port = models.PositiveIntegerField(
-        'Порт прокси сервера',
+        verbose_name='Порт прокси сервера',
         help_text='ID пользователя или группы',
         null=True,
         blank=True,
         default=80
     )
     is_auth = models.BooleanField(
-        'Нужна авторизация',
+        verbose_name='Нужна авторизация',
         default=False
     )
     username = models.CharField(
-        'Логин прокси',
+        verbose_name='Логин прокси',
         max_length=255,
         help_text='Логин прокси сервера',
         null=True,
         blank=True
     )
     password = models.CharField(
-        'Пароль прокси',
+        verbose_name='Пароль прокси',
         max_length=255,
         help_text='Пароль прокси сервера',
         null=True,
@@ -182,6 +188,7 @@ class SettingTelegram(SingletonModel):
 
 class DataBases(models.Model):
     """Класс настроек подключений к БД Барса и Битрикса"""
+
     class Meta:
         verbose_name = 'базу данных'
         verbose_name_plural = 'Базы данных'
@@ -201,6 +208,7 @@ class DataBases(models.Model):
 
 class FinanceReportCategory(models.Model):
     """Категории финансового отчета"""
+
     class Meta:
         verbose_name = 'категорию финансового отчета'
         verbose_name_plural = 'Категории финансового отчета'
@@ -248,10 +256,6 @@ class TariffList(models.Model):
     def __str__(self):
         return self.title
 
-
-
-
-
 # finreport_xls = False
 # finreport_google = True
 # finreport_telegram = False
@@ -278,4 +282,3 @@ class TariffList(models.Model):
 # itogreportxml = data/group_for_itogreport.xml
 
 # list_google_docs = data/list_google_docs.csv
-
