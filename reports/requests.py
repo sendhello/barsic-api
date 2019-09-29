@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pyodbc
 
@@ -12,7 +12,7 @@ def log_error(message):
     return logging.error(f'{__name__}: {str(datetime.now())[:-7]}:    Ошибка {message}')
 
 
-class ReportFromBase(object):
+class ConnectToDatabase(object):
     def __init__(self, database):
         self.db = database
 
@@ -34,6 +34,12 @@ class ReportFromBase(object):
             return None
         return conn
 
+    def get_cursor(self):
+        connect = self.connect()
+        if not connect:
+            return None
+        return connect.cursor()
+
     def to_json(self, obj):
         return {}
 
@@ -41,21 +47,9 @@ class ReportFromBase(object):
         return {}
 
 
-class ReportPeoplesInZone(ReportFromBase):
-    def to_json(self, obj):
-        zones = {'zones': []}
-        for zone in obj:
-            zones['zones'].append({
-                'zone': zone[2],
-                'peoples': zone[0]
-            })
-        return zones
-
+class PeoplesInZoneReport(ConnectToDatabase):
     def query(self):
-        conn = self.connect()
-        if not conn:
-            return self.to_json([('--', 488, 'Error', ''), ])
-        cursor = conn.cursor()
+        cursor = self.get_cursor()
         cursor.execute(
             f"""{''}
                 SELECT
@@ -85,3 +79,99 @@ class ReportPeoplesInZone(ReportFromBase):
         if not rows:
             return self.to_json([('0', 488, 'Все зоны', '0003'), ])
         return self.to_json(rows)
+
+    def to_json(self, rows):
+        zones = {'zones': []}
+        for row in rows:
+            zones['zones'].append({
+                'zone': row[2],
+                'peoples': row[0]
+            })
+        return zones
+
+
+class AllCompanyReport(ConnectToDatabase):
+    def query(self):
+        cursor = self.get_cursor()
+        super_account_type = 1
+        cursor.execute(
+            f"""{''}
+            SELECT
+                SuperAccountId, Type, Descr, CanRegister, CanPass, IsStuff, IsBlocked, BlockReason, DenyReturn, 
+                ClientCategoryId, DiscountCard, PersonalInfoId, Address, Inn, ExternalId, RegisterTime,
+                LastTransactionTime, LegalEntityRelationTypeId, SellServicePointId, DepositServicePointId, 
+                AllowIgnoreStoredPledge, Email, Latitude, Longitude, Phone, WebSite, TNG_ProfileId
+            FROM
+                SuperAccount
+            WHERE
+                Type={super_account_type}
+            """)
+        rows = cursor.fetchall()
+        if not rows:
+            return {}
+        return self.to_json(rows)
+
+    def to_json(self, rows):
+        companies = {}
+        for row in rows:
+            companies[row[0]] = {
+                'id': row[0],
+                'name': row[2],
+                'address': row[12],
+                'inn': row[13],
+                'email': row[21],
+                'tel': row[24],
+                'site': row[25],
+            }
+        return companies
+
+
+class TotalReport(ConnectToDatabase):
+    def __init__(self, db, date_from=None, date_to=None, hide_zero=None, hide_internal=None):
+        super(TotalReport, self).__init__(db)
+        if date_from is None:
+            date_from = datetime.now().strftime('%Y%m%d 00:00:00')
+        self.date_from = date_from
+        if date_to is None:
+            date_to = (datetime.now() + timedelta(1)).strftime('%Y%m%d 00:00:00')
+        self.date_to = date_to
+        if hide_zero is None:
+            hide_zero = 0
+        self.hide_zero = hide_zero
+        if hide_internal is None:
+            hide_internal = 1
+        self.hide_internal = hide_internal
+
+    def query(self):
+        cursor = self.get_cursor()
+        first_company = None
+        for company in AllCompanyReport(self.db).query():
+            first_company = company
+            print(first_company)
+            break
+        cursor.execute(
+            f"exec sp_reportOrganizationTotals_v2 @sa={first_company},@from='{self.date_from}',"
+            f"@to='{self.date_to}',@hideZeroes={self.hide_zero},@hideInternal={self.hide_internal}"
+            )
+        rows = cursor.fetchall()
+        if not rows:
+            return {}
+        return self.to_json(rows)
+
+    def to_json(self, rows):
+        total_report = {}
+        for row in rows:
+            print(row)
+            try:
+                total_report[row[7]]
+            except KeyError:
+                total_report[row[7]] = {}
+            try:
+                total_report[row[7]][row[6]]
+            except KeyError:
+                total_report[row[7]][row[6]] = {}
+            total_report[row[7]][row[6]][row[4]] = {
+                'count': row[1],
+                'sum': row[0]
+            }
+        return total_report

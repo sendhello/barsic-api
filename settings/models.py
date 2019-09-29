@@ -197,7 +197,21 @@ class DataBases(models.Model):
     server = models.CharField('Сервер', max_length=254)
     user = models.CharField('Имя пользователя', max_length=254)
     pwd = models.CharField('Пароль', max_length=254)
-    driver = models.CharField('Драйвер', max_length=254)
+    ODBC_17 = '{ODBC Driver 17 for SQL Server}'
+    ODBC_13 = '{ODBC Driver 13 for SQL Server}'
+    ODBC_11 = '{ODBC Driver 11 for SQL Server}'
+    SQL_SERVER_WIN = '{SQL Server}'
+    ODBC_TYPES = (
+        (ODBC_17, 'ODBC Driver 17 for SQL Server'),
+        (ODBC_13, 'ODBC Driver 13 for SQL Server'),
+        (ODBC_11, 'ODBC Driver 11 for SQL Server'),
+        (SQL_SERVER_WIN, 'SQL Server (Windows)'),
+    )
+    driver = models.CharField(
+        verbose_name='Драйвер',
+        max_length=50,
+        choices=ODBC_TYPES,
+        default=ODBC_17)
     title = models.CharField('Отображаемое имя', max_length=254, default='Объект 1')
     get_count_clients = models.BooleanField('Есть зоны', default=False)
     get_total_sum = models.BooleanField('Показывать сумму', default=False)

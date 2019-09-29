@@ -16,8 +16,10 @@ Including another URLconf
 from django.conf import settings
 from django.urls import path, include
 
-from reports.views import PeoplesInZone
+from reports.views import PeoplesInZoneView, AllCompanyView, TotalView
 
 urlpatterns = [
-    path('people-in-zone/', PeoplesInZone.as_view(), name='people-in-zone'),
+    path('people-in-zone/', PeoplesInZoneView.as_view(), name='people-in-zone'),
+    path('all-company/', AllCompanyView.as_view(), name='all_company'),
+    path('total/', TotalView.as_view(), name='total'),
 ]
