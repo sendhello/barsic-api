@@ -4,7 +4,7 @@ from solo.models import SingletonModel
 
 class SettingBase(SingletonModel):
     db_aqua = models.ForeignKey(
-        'DataBases',
+        'DataBase',
         verbose_name='БД Bars-Аквапарк',
         on_delete=models.SET_NULL,
         help_text='Значение из списка раздела "Базы данных"',
@@ -12,7 +12,7 @@ class SettingBase(SingletonModel):
         null=True
     )
     db_beach = models.ForeignKey(
-        'DataBases',
+        'DataBase',
         verbose_name='БД Bars-Пляж',
         on_delete=models.SET_NULL,
         help_text='Значение из списка раздела "Базы данных"',
@@ -20,7 +20,7 @@ class SettingBase(SingletonModel):
         null=True
     )
     db_bitrix = models.ForeignKey(
-        'DataBases',
+        'DataBase',
         verbose_name='БД Bitrix',
         on_delete=models.SET_NULL,
         help_text='Значение из списка раздела "Базы данных"',
@@ -186,35 +186,43 @@ class SettingTelegram(SingletonModel):
         verbose_name = 'настройки Telegram'
 
 
-class DataBases(models.Model):
+class DataBase(models.Model):
     """Класс настроек подключений к БД Барса и Битрикса"""
 
     class Meta:
         verbose_name = 'базу данных'
         verbose_name_plural = 'Базы данных'
 
+    ODBC_TYPES = (
+        ('{ODBC Driver 17 for SQL Server}', 'ODBC Driver 17 for SQL Server'),
+        ('{ODBC Driver 13 for SQL Server}', 'ODBC Driver 13 for SQL Server'),
+        ('{ODBC Driver 11 for SQL Server}', 'ODBC Driver 11 for SQL Server'),
+        ('{SQL Server}', 'SQL Server (Windows)'),
+    )
+    DB_MAP = (
+        ('', 'Не используется'),
+        ('aqua', 'База аквапарка'),
+        ('beach', 'База пляжа'),
+        ('bitrix', 'База Bitrix'),
+    )
+    id = models.AutoField(primary_key=True)
+    title = models.CharField('Отображаемое имя', max_length=254, default=f'Объект {id}')
     database = models.CharField('Имя базы данных', max_length=254)
     server = models.CharField('Сервер', max_length=254)
     user = models.CharField('Имя пользователя', max_length=254)
     pwd = models.CharField('Пароль', max_length=254)
-    ODBC_17 = '{ODBC Driver 17 for SQL Server}'
-    ODBC_13 = '{ODBC Driver 13 for SQL Server}'
-    ODBC_11 = '{ODBC Driver 11 for SQL Server}'
-    SQL_SERVER_WIN = '{SQL Server}'
-    ODBC_TYPES = (
-        (ODBC_17, 'ODBC Driver 17 for SQL Server'),
-        (ODBC_13, 'ODBC Driver 13 for SQL Server'),
-        (ODBC_11, 'ODBC Driver 11 for SQL Server'),
-        (SQL_SERVER_WIN, 'SQL Server (Windows)'),
-    )
     driver = models.CharField(
         verbose_name='Драйвер',
         max_length=50,
         choices=ODBC_TYPES,
-        default=ODBC_17)
-    title = models.CharField('Отображаемое имя', max_length=254, default='Объект 1')
-    get_count_clients = models.BooleanField('Есть зоны', default=False)
-    get_total_sum = models.BooleanField('Показывать сумму', default=False)
+        default='{ODBC Driver 17 for SQL Server}')
+    type = models.CharField(
+        verbose_name='Соответствие',
+        max_length=50,
+        choices=DB_MAP,
+        default='')
+    is_have_zones = models.BooleanField('Есть зоны', default=False)
+    is_display_sum = models.BooleanField('Показывать сумму', default=False)
 
     def __str__(self):
         return self.database
@@ -246,7 +254,7 @@ class PayAgentReportCategory(models.Model):
         return self.title
 
 
-class TariffList(models.Model):
+class Tariff(models.Model):
     """Список имен тарифов"""
 
     class Meta:

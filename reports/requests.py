@@ -1,55 +1,23 @@
 import logging
 from datetime import datetime, timedelta
+from .base_classes import BaseRequest, Data, PeoplesInZoneData, CompaniesData
 
-import pyodbc
-
-
-def log_info(message):
-    return logging.info(f'{__name__}: {str(datetime.now())[:-7]}:    {message}')
+logger = logging.getLogger(__name__)
 
 
-def log_error(message):
-    return logging.error(f'{__name__}: {str(datetime.now())[:-7]}:    Ошибка {message}')
-
-
-class ConnectToDatabase(object):
-    def __init__(self, database):
-        self.db = database
-
-    @property
-    def connect_string(self):
-        db = self.db
-        connect_s = f'DRIVER={db.driver};SERVER={db.server};DATABASE={db.database};UID={db.user};PWD={db.pwd}'
-        return connect_s
-
-    def connect(self):
-        try:
-            log_info('Попытка соединения')
-            conn = pyodbc.connect(self.connect_string)
-        except pyodbc.OperationalError as e:
-            log_error(repr(e))
-            return None
-        except pyodbc.ProgrammingError as e:
-            log_error(repr(e))
-            return None
-        return conn
-
-    def get_cursor(self):
-        connect = self.connect()
-        if not connect:
-            return None
-        return connect.cursor()
-
-    def to_json(self, obj):
-        return {}
+class PeoplesInZoneReport(BaseRequest):
+    def __init__(self):
+        super(PeoplesInZoneReport, self).__init__()
+        self.data.zones = []
 
     def query(self):
-        return {}
+        database_type = 'aqua'
+        cursor, errors = self.get_cursor(database_type)
+        if errors:
+            self.status = 'error'
+            self.errors += errors
+            return None
 
-
-class PeoplesInZoneReport(ConnectToDatabase):
-    def query(self):
-        cursor = self.get_cursor()
         cursor.execute(
             f"""{''}
                 SELECT
@@ -76,31 +44,30 @@ class PeoplesInZoneReport(ConnectToDatabase):
                         INNER JOIN [Category] [c] ON [gr].[StockCategory_Id] = [c].[CategoryId]
             """)
         rows = cursor.fetchall()
-        if not rows:
-            return self.to_json([('0', 488, 'Все зоны', '0003'), ])
-        return self.to_json(rows)
-
-    def to_json(self, rows):
-        zones = {'zones': []}
-        for row in rows:
-            zones['zones'].append({
-                'zone': row[2],
-                'peoples': row[0]
-            })
-        return zones
+        if rows:
+            self.data.zones = [PeoplesInZoneData(zone=row[2], people_count=row[1]) for row in rows]
+        else:
+            self.data.zones.append(PeoplesInZoneData(zone='Все зоны', people_count=0))
+        self.status = 'ok'
 
 
-class AllCompanyReport(ConnectToDatabase):
-    def query(self):
-        cursor = self.get_cursor()
+class CompaniesReport(BaseRequest):
+    def __init__(self):
+        super(CompaniesReport, self).__init__()
+        self.data.companies = []
+
+    def query(self, database_type: str):
         super_account_type = 1
+        cursor, errors = self.get_cursor(database_type)
+        if errors:
+            self.status = 'error'
+            self.errors += errors
+            return None
+
         cursor.execute(
             f"""{''}
             SELECT
-                SuperAccountId, Type, Descr, CanRegister, CanPass, IsStuff, IsBlocked, BlockReason, DenyReturn, 
-                ClientCategoryId, DiscountCard, PersonalInfoId, Address, Inn, ExternalId, RegisterTime,
-                LastTransactionTime, LegalEntityRelationTypeId, SellServicePointId, DepositServicePointId, 
-                AllowIgnoreStoredPledge, Email, Latitude, Longitude, Phone, WebSite, TNG_ProfileId
+                SuperAccountId, Descr, Address, Inn, Email, Phone, WebSite
             FROM
                 SuperAccount
             WHERE
@@ -108,29 +75,27 @@ class AllCompanyReport(ConnectToDatabase):
             """)
         rows = cursor.fetchall()
         if not rows:
-            return {}
-        return self.to_json(rows)
-
-    def to_json(self, rows):
-        companies = {}
-        for row in rows:
-            companies[row[0]] = {
-                'id': row[0],
-                'name': row[2],
-                'address': row[12],
-                'inn': row[13],
-                'email': row[21],
-                'tel': row[24],
-                'site': row[25],
-            }
-        return companies
+            self.status = 'error'
+            self.errors.append(f'Не найдено ни одной организации в БД типа "{database_type}"')
+        else:
+            self.data.companies = [
+                CompaniesData(
+                    company_id=row[0],
+                    name=row[1],
+                    address=row[2],
+                    inn=row[3],
+                    email=row[4],
+                    tel=row[5],
+                    site=row[6]
+                ) for row in rows
+            ]
+            self.status = 'ok'
 
     def get_first_company(self):
-        for company in self.query():
-            return company
+        return self.data.companies[0]
 
 
-class TotalReport(ConnectToDatabase):
+class TotalReport(BaseRequest):
     def __init__(self, db, date_from=None, date_to=None, hide_zero=None, hide_internal=None):
         super(TotalReport, self).__init__(db)
         if date_from is None:
@@ -146,11 +111,15 @@ class TotalReport(ConnectToDatabase):
             hide_internal = 1
         self.hide_internal = hide_internal
 
-    def query(self):
-        cursor = self.get_cursor()
-        company = AllCompanyReport(self.db).get_first_company()
+    def query(self, database_type: str):
+        cursor, errors = self.get_cursor(database_type)
+        if errors:
+            self.status = 'error'
+            self.errors += errors
+            return None
+        company = CompaniesReport().get_first_company()
         cursor.execute(
-            f"exec sp_reportOrganizationTotals_v2 @sa={company},@from='{self.date_from}',"
+            f"exec sp_reportOrganizationTotals_v2 @sa={company.company_id},@from='{self.date_from}',"
             f"@to='{self.date_to}',@hideZeroes={self.hide_zero},@hideInternal={self.hide_internal}"
             )
         rows = cursor.fetchall()
@@ -176,7 +145,7 @@ class TotalReport(ConnectToDatabase):
         return total_report
 
 
-class ClientCountReport(ConnectToDatabase):
+class ClientCountReport(BaseRequest):
     def __init__(self, db, date_from=None, date_to=None):
         super(ClientCountReport, self).__init__(db)
         if date_from is None:
@@ -187,10 +156,14 @@ class ClientCountReport(ConnectToDatabase):
         self.date_to = date_to
 
     def query(self):
-        cursor = self.get_cursor()
-        company = AllCompanyReport(self.db).get_first_company()
+        cursor, errors = self.get_cursor(database_type)
+        if errors:
+            self.status = 'error'
+            self.errors += errors
+            return None
+        company = CompaniesReport().get_first_company()
         cursor.execute(
-            f"exec sp_reportClientCountTotals @sa={company},"
+            f"exec sp_reportClientCountTotals @sa={company.company_id},"
             f"@from='{self.date_from}',@to='{self.date_to}',@categoryId=0"
         )
         rows = cursor.fetchall()
