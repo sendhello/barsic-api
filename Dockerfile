@@ -3,7 +3,7 @@ ENV PYTHONUNBUFFERED 1 \
     TZ=Europe/Moscow
 
 RUN mkdir /app
-COPY . /app/
+COPY Pipfile Pipfile.lock /app/
 WORKDIR /app
 
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
