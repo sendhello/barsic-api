@@ -1,6 +1,6 @@
 from django.contrib import admin
 from solo.admin import SingletonModelAdmin
-from settings.models import SettingBase, SettingBitrix, SettingGoogleSheets, SettingTelegram, SettingYandex, DataBase, \
+from settings.models import SettingBitrix, SettingGoogleSheets, SettingTelegram, SettingYandex, DataBase, \
     FinanceReportCategory, PayAgentReportCategory, Tariff
 from django_summernote.admin import SummernoteModelAdmin
 
@@ -24,11 +24,10 @@ class TariffListAdmin(SummernoteModelAdmin):
 
 
 class DataBasesAdmin(SummernoteModelAdmin):
-    list_display = ('title', 'database', 'server', 'user', 'driver', 'type', 'is_have_zones', 'is_display_sum')
+    list_display = ('title', 'server', 'port', 'database', 'user', 'type', 'is_have_zones', 'is_display_sum')
 
 
 admin.site.register(SettingBitrix, SettingAdmin)
-admin.site.register(SettingBase, SettingAdmin)
 admin.site.register(SettingYandex, SettingAdmin)
 admin.site.register(SettingTelegram, SettingAdmin)
 admin.site.register(SettingGoogleSheets, SettingAdmin)

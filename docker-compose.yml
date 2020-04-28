@@ -35,6 +35,7 @@ services:
     image: "mcr.microsoft.com/mssql/server:2017-latest"
     volumes:
       - bars_db_data:/var/opt/mssql/data
+      - .sql_dumps:/var/opt/
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=${SQLSERVER_SA_PASSWORD:-MSSQL@1234}

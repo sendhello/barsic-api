@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from .base_classes import BaseReport, BaseData, PeoplesInZoneData, CompaniesData
 from settings.models import DataBase
 from decimal import Decimal
+from .helper import check_date_params, check_bool_params, get_company
 
 logger = logging.getLogger(__name__)
 
@@ -99,61 +100,35 @@ class Companies(BaseReport):
         self.status = 'ok'
         return self
 
-    def get_first_company(self):
-        return self.data.companies[0]
-
 
 class TotalReport(BaseReport):
     def __init__(self):
         super(TotalReport, self).__init__()
-        self.data.total_report = []
+        self.data.total_report = {}
 
-    def query(self, db_type, date_from=None, date_to=None, hide_zero=None, hide_internal=None):
-        company = Companies().query(db_type=db_type).get_first_company()
-        self.data.company_name = company.name
+    def query(self, db_type, company_id, date_from=None, date_to=None, hide_zero=None, hide_internal=None):
         db = DataBase.objects.filter(type=db_type).first()
         cursor, errors = self.get_cursor(db)
-        if errors:
+        self.errors += errors
+        self.data.db_name = db.title
+        self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
+        self.errors += errors
+        self.data.hide_zero, errors = check_bool_params(hide_zero)
+        self.errors += errors
+        self.data.hide_internal, errors = check_bool_params(hide_internal, default='1')
+        self.errors += errors
+        if self.errors:
             self.status = 'error'
-            self.errors += errors
             return self
 
-        self.data.db_name = db.title
-        if date_from is None:
-            self.data.date_from = datetime.now()
-        else:
-            try:
-                self.data.date_from = datetime.strptime(date_from, '%Y%m%d')
-            except ValueError as e:
-                self.status = 'error'
-                self.errors.append(f'Неверный формат параметра date_from: {e}')
-                return self
-        if date_to is None:
-            self.data.date_to = self.data.date_from + timedelta(1)
-        else:
-            try:
-                self.data.date_to = datetime.strptime(date_to, '%Y%m%d')
-            except ValueError as e:
-                self.status = 'error'
-                self.errors.append(f'Неверный формат параметра date_to: {e}')
-                return self
-        if hide_zero is None or hide_zero.isdigit() and hide_zero == '0':
-            self.data.hide_zero = 0
-        elif hide_zero.isdigit() and hide_zero == '1':
-            self.data.hide_zero = 1
-        else:
+        companies = Companies().query(db_type=db_type).data.companies
+        self.data.company_name, errors = get_company(company_id, companies)
+        self.errors += errors
+        if self.errors:
             self.status = 'error'
-            self.errors.append('Параметр hide_zero должен быть равен 0 или 1')
             return self
-        if hide_internal is None or hide_internal.isdigit() and hide_internal == '1':
-            self.data.hide_internal = 1
-        elif hide_internal.isdigit() and hide_internal == '0':
-            self.data.hide_internal = 0
-        else:
-            self.status = 'error'
-            self.errors.append('Параметр hide_internal должен быть равен 0 или 1')
-            return self
-        cursor.execute(f"exec sp_reportOrganizationTotals_v2 @sa={company.id},"
+
+        cursor.execute(f"exec sp_reportOrganizationTotals_v2 @sa={company_id},"
                        f"@from='{self.data.date_from.strftime('%Y%m%d 00:00:00')}',"
                        f"@to='{self.data.date_to.strftime('%Y%m%d 00:00:00')}',@hideZeroes={self.data.hide_zero},"
                        f"@hideInternal={self.data.hide_internal}")
@@ -164,13 +139,19 @@ class TotalReport(BaseReport):
             return self
 
         for row in rows:
-            self.data.total_report.append({
-                'name': row[4],
-                'count': row[1],
-                'sum': row[0],
-                'group': row[6],
-                'type': row[7]
-            })
+            service_type = row[7] if row[7] else 'Прочее'
+            service_group = row[6] if row[6] else 'Без группы'
+            service_name = row[4]
+            count = int(row[1]) if row[1] else 0
+            summ = row[0] if row[0] else Decimal('0.00')
+            if not self.data.total_report.get(service_type):
+                self.data.total_report[service_type] = {}
+            if not self.data.total_report[service_type].get(service_group):
+                self.data.total_report[service_type][service_group] = {}
+            self.data.total_report[service_type][service_group][service_name] = {
+                'count': count,
+                'sum': summ
+            }
 
         self.status = 'ok'
         return self

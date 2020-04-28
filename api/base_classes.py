@@ -61,7 +61,7 @@ class BaseReport(object):
         if not db:
             errors.append(f'База данных не определена')
             return None, errors
-        connect_string = f'DRIVER={db.driver};SERVER={db.server};DATABASE={db.database};UID={db.user};PWD={db.pwd}'
+        connect_string = f'DRIVER={db.driver};SERVER={db.server},{db.port};DATABASE={db.database};UID={db.user};PWD={db.pwd}'
         try:
             logger.info(f'Попытка соединения c БД {db.title}')
             conn = pyodbc.connect(connect_string)

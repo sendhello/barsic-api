@@ -2,39 +2,6 @@ from django.db import models
 from solo.models import SingletonModel
 
 
-class SettingBase(SingletonModel):
-    db_aqua = models.ForeignKey(
-        'DataBase',
-        verbose_name='БД Bars-Аквапарк',
-        on_delete=models.SET_NULL,
-        help_text='Значение из списка раздела "Базы данных"',
-        related_name='aqua',
-        null=True
-    )
-    db_beach = models.ForeignKey(
-        'DataBase',
-        verbose_name='БД Bars-Пляж',
-        on_delete=models.SET_NULL,
-        help_text='Значение из списка раздела "Базы данных"',
-        related_name='beach',
-        null=True
-    )
-    db_bitrix = models.ForeignKey(
-        'DataBase',
-        verbose_name='БД Bitrix',
-        on_delete=models.SET_NULL,
-        help_text='Значение из списка раздела "Базы данных"',
-        related_name='bitrix',
-        null=True
-    )
-
-    def __str__(self):
-        return self._meta.verbose_name.title()
-
-    class Meta:
-        verbose_name = 'сопоставление баз данных'
-
-
 class SettingBitrix(SingletonModel):
     url = models.SlugField(
         verbose_name='Адрес сайта',
@@ -206,21 +173,25 @@ class DataBase(models.Model):
         ('bitrix', 'База Bitrix'),
     )
     id = models.AutoField(primary_key=True)
-    title = models.CharField('Отображаемое имя', max_length=254, default=f'Объект {id}')
+    title = models.CharField('Отображаемое имя', max_length=254, default='Объект')
     database = models.CharField('Имя базы данных', max_length=254)
     server = models.CharField('Сервер', max_length=254)
+    port = models.CharField('Порт', max_length=10, default='1433')
     user = models.CharField('Имя пользователя', max_length=254)
     pwd = models.CharField('Пароль', max_length=254)
     driver = models.CharField(
         verbose_name='Драйвер',
         max_length=50,
         choices=ODBC_TYPES,
-        default='{ODBC Driver 17 for SQL Server}')
+        default='{ODBC Driver 17 for SQL Server}'
+    )
     type = models.CharField(
         verbose_name='Соответствие',
         max_length=50,
         choices=DB_MAP,
-        default='')
+        default='',
+        blank=True
+    )
     is_have_zones = models.BooleanField('Есть зоны', default=False)
     is_display_sum = models.BooleanField('Показывать сумму', default=False)
 

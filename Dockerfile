@@ -6,6 +6,7 @@ RUN mkdir /app
 COPY Pipfile Pipfile.lock /app/
 WORKDIR /app
 
+# Установка драйвера Microsoft ODBC 17
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
     && curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
@@ -19,5 +20,12 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
     && DEBIAN_FRONTEND=noninteractive apt-get -y install libgssapi-krb5-2 \
     && pip install --upgrade pip setuptools wheel pipenv \
     && pipenv install --system --deploy
+
+# Понижения уровня безопасности для работы с MSSQL 2014
+RUN apt-get update -yqq \
+    && apt-get install -y --no-install-recommends openssl \
+    && sed -i 's,^\(MinProtocol[ ]*=\).*,\1'TLSv1.0',g' /etc/ssl/openssl.cnf \
+    && sed -i 's,^\(CipherString[ ]*=\).*,\1'DEFAULT@SECLEVEL=1',g' /etc/ssl/openssl.cnf\
+    && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 8000

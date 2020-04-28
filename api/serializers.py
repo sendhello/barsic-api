@@ -45,7 +45,7 @@ class TotalReportDataSerializer(serializers.Serializer):
     date_to = serializers.DateTimeField()
     hide_zero = serializers.BooleanField()
     hide_internal = serializers.BooleanField()
-    total_report = serializers.ListField()
+    total_report = serializers.DictField()
 
 
 class TotalReportSerializer(serializers.Serializer):
