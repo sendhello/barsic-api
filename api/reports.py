@@ -1,8 +1,9 @@
 import logging
 from datetime import datetime, timedelta
-from .base_classes import BaseReport, BaseData, PeoplesInZoneData, CompaniesData
-from settings.models import DataBase
 from decimal import Decimal
+
+from settings.models import DataBase
+from .base_classes import BaseReport, CompaniesData
 from .helper import check_date_params, check_bool_params, get_company
 
 logger = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 class PeopleInZone(BaseReport):
     def __init__(self):
         super(PeopleInZone, self).__init__()
-        self.data.zones = []
+        self.report_type = 'people_in_zone'
 
     def query(self):
         db_type = 'aqua'
@@ -48,10 +49,11 @@ class PeopleInZone(BaseReport):
                         INNER JOIN [Category] [c] ON [gr].[StockCategory_Id] = [c].[CategoryId]
             """)
         rows = cursor.fetchall()
+
         if rows:
-            self.data.zones = [PeoplesInZoneData(zone=row[2], people_count=row[1]) for row in rows]
+            self.data.report = {row[2]: row[1] for row in rows}
         else:
-            self.data.zones.append(PeoplesInZoneData(zone='Все зоны', people_count=0))
+            self.data.report = {'Все зоны': 0}
         self.status = 'ok'
         return self
 
@@ -59,7 +61,7 @@ class PeopleInZone(BaseReport):
 class Companies(BaseReport):
     def __init__(self):
         super(Companies, self).__init__()
-        self.data.companies = []
+        self.report_type = 'companies'
 
     def query(self, db_type):
         super_account_type = 1
@@ -86,17 +88,14 @@ class Companies(BaseReport):
             self.errors.append(f'Не найдено ни одной организации в БД "{db.title}"')
             return self
 
-        self.data.companies = [
-            CompaniesData(
-                company_id=row[0],
-                name=row[1],
-                address=row[2],
-                inn=row[3],
-                email=row[4],
-                tel=row[5],
-                site=row[6]
-            ) for row in rows
-        ]
+        self.data.report = {row[0]: CompaniesData(
+            name=row[1],
+            address=row[2],
+            inn=row[3],
+            email=row[4],
+            tel=row[5],
+            site=row[6]
+        ) for row in rows}
         self.status = 'ok'
         return self
 
@@ -104,7 +103,7 @@ class Companies(BaseReport):
 class TotalReport(BaseReport):
     def __init__(self):
         super(TotalReport, self).__init__()
-        self.data.total_report = {}
+        self.report_type = 'total_report'
 
     def query(self, db_type, company_id, date_from=None, date_to=None, hide_zero=None, hide_internal=None):
         db = DataBase.objects.filter(type=db_type).first()
@@ -121,7 +120,7 @@ class TotalReport(BaseReport):
             self.status = 'error'
             return self
 
-        companies = Companies().query(db_type=db_type).data.companies
+        companies = Companies().query(db_type=db_type).data.report
         self.data.company_name, errors = get_company(company_id, companies)
         self.errors += errors
         if self.errors:
@@ -135,7 +134,7 @@ class TotalReport(BaseReport):
         rows = cursor.fetchall()
         if not rows:
             self.status = 'ok'
-            self.data.total_report['Итого'] = Decimal('0.00')
+            self.data.report['Итого'] = Decimal('0.00')
             return self
 
         for row in rows:
@@ -144,11 +143,11 @@ class TotalReport(BaseReport):
             service_name = row[4]
             count = int(row[1]) if row[1] else 0
             summ = row[0] if row[0] else Decimal('0.00')
-            if not self.data.total_report.get(service_type):
-                self.data.total_report[service_type] = {}
-            if not self.data.total_report[service_type].get(service_group):
-                self.data.total_report[service_type][service_group] = {}
-            self.data.total_report[service_type][service_group][service_name] = {
+            if not self.data.report.get(service_type):
+                self.data.report[service_type] = {}
+            if not self.data.report[service_type].get(service_group):
+                self.data.report[service_type][service_group] = {}
+            self.data.report[service_type][service_group][service_name] = {
                 'count': count,
                 'sum': summ
             }

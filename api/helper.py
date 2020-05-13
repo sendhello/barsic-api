@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, Dict
 from datetime import datetime, timedelta
 
 
@@ -35,8 +35,7 @@ def check_bool_params(param: str, default: str='0'):
     return param, errors
 
 
-def get_company(company_id: str, companies: List):
-    for company in companies:
-        if str(company.id) == company_id:
-            return company.name, []
+def get_company(company_id: str, companies: Dict):
+    if int(company_id) in companies:
+        return companies[int(company_id)].name, []
     return None, [f'Не существует организации с id {company_id}']

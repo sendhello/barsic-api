@@ -8,17 +8,17 @@ class PeopleInZoneElementSerializer(serializers.Serializer):
 
 
 class PeopleInZoneDataSerializer(serializers.Serializer):
-    zones = PeopleInZoneElementSerializer(many=True)
+    report = serializers.DictField()
 
 
 class PeopleInZoneSerializer(serializers.Serializer):
     status = serializers.CharField(max_length=64)
     errors = serializers.ListField()
+    report_type = serializers.CharField(max_length=64)
     data = PeopleInZoneDataSerializer()
 
 
 class CompanyElementSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
     name = serializers.CharField()
     address = serializers.CharField()
     inn = serializers.CharField()
@@ -29,12 +29,13 @@ class CompanyElementSerializer(serializers.Serializer):
 
 class CompanyDataSerializer(serializers.Serializer):
     db_name = serializers.CharField()
-    companies = CompanyElementSerializer(many=True)
+    report = serializers.DictField(child=CompanyElementSerializer())
 
 
 class CompanySerializer(serializers.Serializer):
     status = serializers.CharField(max_length=64)
     errors = serializers.ListField()
+    report_type = serializers.CharField(max_length=64)
     data = CompanyDataSerializer()
 
 
@@ -45,10 +46,11 @@ class TotalReportDataSerializer(serializers.Serializer):
     date_to = serializers.DateTimeField()
     hide_zero = serializers.BooleanField()
     hide_internal = serializers.BooleanField()
-    total_report = serializers.DictField()
+    report = serializers.DictField()
 
 
 class TotalReportSerializer(serializers.Serializer):
     status = serializers.CharField(max_length=64)
     errors = serializers.ListField()
+    report_type = serializers.CharField(max_length=64)
     data = TotalReportDataSerializer()

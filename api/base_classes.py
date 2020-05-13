@@ -16,18 +16,16 @@ class BaseData(object):
 
 
 class Data(BaseData):
-    def __init__(self, zones=None, companies=None, db_name=None, total_report=None, company_name=None, date_from=None,
+    def __init__(self, report=None, db_name=None, company_name=None, date_from=None,
                  date_to=None, hide_zero=None, hide_internal=None):
         super(Data, self).__init__()
-        self.zones: List = zones
-        self.companies: List = companies
+        self.report: Dict = report
         self.db_name: str = db_name
         self.company_name: str = company_name
         self.date_from: datetime = date_from
         self.date_to: datetime = date_to
         self.hide_zero: bool = hide_zero
         self.hide_internal: bool = hide_internal
-        self.total_report: List = total_report
 
 
 class PeoplesInZoneData(BaseData):
@@ -38,9 +36,8 @@ class PeoplesInZoneData(BaseData):
 
 
 class CompaniesData(BaseData):
-    def __init__(self, company_id, name, address, inn, email, tel, site):
+    def __init__(self, name, address, inn, email, tel, site):
         super(CompaniesData, self).__init__()
-        self.id: int = company_id
         self.name: str = name
         self.address: str = address
         self.inn: str = inn
@@ -53,7 +50,9 @@ class BaseReport(object):
     def __init__(self):
         self.status = 'undefined'
         self.errors = []
+        self.report_type = None
         self.data = Data()
+        self.data.report = {}
 
     @staticmethod
     def get_cursor(db: DataBase) -> Tuple[Optional[Any], List]:
