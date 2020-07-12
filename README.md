@@ -1,28 +1,42 @@
-# barsic3
-## Instalation:
-#### 1. Setup Microsoft ODBC Driver for SQL Server (for Ubuntu 18.10)
-(original: https://docs.microsoft.com/ru-ru/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-2017#microsoft-odbc-driver-17-for-sql-server)
+# Barsic-API
+
+## Запуск тестового сервера
+* Сделать копию файла `.env.example` с названием `.env`
+* Запустить docker-compose
 ```console
-$ sudo apt-get install unixodbc-dev
-sudo su 
-curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-curl https://packages.microsoft.com/config/ubuntu/18.10/prod.list > /etc/apt/sources.list.d/mssql-release.list
-#Ubuntu 18.10
-curl https://packages.microsoft.com/config/ubuntu/18.10/prod.list > /etc/apt/sources.list.d/mssql-release.list
-exit
-sudo apt-get update
-sudo ACCEPT_EULA=Y apt-get install msodbcsql17
-# optional: for bcp and sqlcmd
-sudo ACCEPT_EULA=Y apt-get install mssql-tools
-echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile
-echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
-source ~/.bashrc
-# optional: for unixODBC development headers
-sudo apt-get install unixodbc-dev
+$ docker-compose -f tests/test_server/docker-compose.yml up
+```
+* После запуска контейнеров(!!!) скопировать в папку `dev_server/bars_db_backup` бэкапы и переименовать их при необходимости в:
+`AquaPark_Ulyanovsk.bak`, `Beach.bak` и `bitrix_transaction.bak`
+* Распаковать бэкапы баз данных:
+```bash
+dev_server/restore_backups.bash
+```
+* Если возникает ошибка `Permission denied`, сделать bash-файл исполняемым и попробовать снова
+```bash
+chmod +x dev_server/restore_backups.bash
 ```
 
-## Запуск MSSQL-Server
-
-```console
-$ docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=yourStrong(!)Password' -e 'MSSQL_PID=Express' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2017-latest-ubuntu
+#### Ручная распаковка бекапов баз Барса в тестовую БД (при возникновении проблем с автоматической):
+*(Примеры указаны для БД AquaPark_Ulyanovsk)*
+* Скопировать бекапы в Docker-контейнер :
+```bash
+docker exec -it dev_server_bars_db_1 mkdir /var/opt/mssql/backup
+docker cp AquaPark_Ulyanovsk.bak dev_server_bars_db_1:/var/opt/mssql/backup
 ```
+* Вывести список логических имен файлов и путей внутри резервной копии
+```bash
+docker exec -it dev_server_bars_db_1 /opt/mssql-tools/bin/sqlcmd -S localhost \
+   -U SA -P 'MSSQL@1234' \
+   -Q 'RESTORE FILELISTONLY FROM DISK = "/var/opt/mssql/backup/AquaPark_Ulyanovsk.bak"' \
+   | tr -s ' ' | cut -d ' ' -f 1-2
+```
+Восстановить базу данных внутри контейнера. 
+Укажите новые пути для каждого из файлов в предыдущем шаге
+```bash
+docker exec -it dev_server_bars_db_1 /opt/mssql-tools/bin/sqlcmd \
+   -S localhost -U SA -P 'MSSQL@1234' \
+   -Q 'RESTORE DATABASE AquaPark_Ulyanovsk FROM DISK = "/var/opt/mssql/backup/AquaPark_Ulyanovsk.bak" WITH MOVE "SkiBars2" TO "/var/opt/mssql/data/AquaPark_Ulyanovsk.mdf", MOVE "SkiBars2_log" TO "/var/opt/mssql/data/AquaPark_Ulyanovsk_log.ldf"'
+```
+Подробнее о востановлении баз данных на сервера MSSQL-Server Linux в Docker-контейнере:
+https://docs.microsoft.com/ru-ru/sql/linux/tutorial-restore-backup-in-sql-server-container?view=sql-server-ver15

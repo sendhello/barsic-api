@@ -3,31 +3,45 @@ version: '3.7'
 services:
   app:
     build:
-      context: "."
+      context: "../"
       dockerfile: "Dockerfile"
     env_file:
-      - ".env"
+      - "../.env"
     command: >
       bash -c "python manage.py migrate
       && python manage.py initadmin
       && python manage.py runserver 0.0.0.0:8000"
     volumes:
-      - ".:/app"
+      - "../:/app"
     ports:
       - "8000:8000"
     networks:
       - "app"
-    restart: "always"
+    restart: "unless-stopped"
     depends_on:
       - "db"
+      - "bars_db"
 
   db:
     image: "postgres:10-alpine"
     volumes:
       - db_data:/var/lib/postgresql/data
     env_file:
-      - ".env"
-    restart: "always"
+      - "../.env"
+    restart: "unless-stopped"
+    networks:
+      - "app"
+
+  bars_db:
+    image: "mcr.microsoft.com/mssql/server:2017-latest"
+    volumes:
+      - bars_db_data:/var/opt/mssql/data
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SQLSERVER_SA_PASSWORD:-MSSQL@1234}
+    restart: "unless-stopped"
+    ports:
+      - "1433:1433"
     networks:
       - "app"
 
@@ -37,3 +51,4 @@ networks:
 
 volumes:
   db_data:
+  bars_db_data:
