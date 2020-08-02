@@ -55,10 +55,10 @@ class BaseReport(object):
         self.data.report = {}
 
     @staticmethod
-    def get_cursor(db: DataBase) -> Tuple[Optional[Any], List]:
+    def get_cursor(db: DataBase, db_type: str = '') -> Tuple[Optional[Any], List]:
         errors = []
         if not db:
-            errors.append(f'База данных не определена')
+            errors.append(f'Не указано соответствие базе данных {db_type}')
             return None, errors
         connect_string = f'DRIVER={db.driver};SERVER={db.server},{db.port};DATABASE={db.database};UID={db.user};PWD={db.pwd}'
         try:
@@ -66,7 +66,7 @@ class BaseReport(object):
             conn = pyodbc.connect(connect_string)
         except (pyodbc.OperationalError, pyodbc.ProgrammingError) as e:
             logger.error(repr(e))
-            errors.append(repr(e))
+            errors = repr(e)
             return None, errors
 
-        return conn.cursor(), []
+        return conn.cursor(), errors

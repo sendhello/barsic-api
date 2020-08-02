@@ -17,7 +17,7 @@ class PeopleInZone(BaseReport):
     def query(self):
         db_type = 'aqua'
         db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db)
+        cursor, errors = self.get_cursor(db, db_type=db_type)
         if errors:
             self.status = 'error'
             self.errors += errors
@@ -66,7 +66,7 @@ class Companies(BaseReport):
     def query(self, db_type):
         super_account_type = 1
         db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db)
+        cursor, errors = self.get_cursor(db, db_type=db_type)
         if errors:
             self.status = 'error'
             self.errors += errors
@@ -107,7 +107,7 @@ class TotalReport(BaseReport):
 
     def query(self, db_type, company_id, date_from=None, date_to=None, hide_zero=None, hide_internal=None):
         db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db)
+        cursor, errors = self.get_cursor(db, db_type=db_type)
         self.errors += errors
         self.data.db_name = db.title
         self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
@@ -168,7 +168,7 @@ class ClientCount(BaseReport):
 
     def query(self, db_type:str):
         db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db)
+        cursor, errors = self.get_cursor(db, db_type=db_type)
         if errors:
             self.status = 'error'
             self.errors += errors

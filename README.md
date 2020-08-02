@@ -4,7 +4,7 @@
 * Сделать копию файла `.env.example` с названием `.env`
 * Запустить docker-compose
 ```console
-$ docker-compose -f tests/test_server/docker-compose.yml up
+$ docker-compose -f dev_server/docker-compose.yml up
 ```
 * После запуска контейнеров(!!!) скопировать в папку `dev_server/bars_db_backup` бэкапы и переименовать их при необходимости в:
 `AquaPark_Ulyanovsk.bak`, `Beach.bak` и `bitrix_transaction.bak`
