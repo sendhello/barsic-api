@@ -12,7 +12,7 @@ services:
       && python manage.py initadmin
       && python manage.py runserver 0.0.0.0:8000"
     volumes:
-      - "../:/app"
+      - ../:/app
     ports:
       - "8000:8000"
     networks:
@@ -36,6 +36,7 @@ services:
     image: "mcr.microsoft.com/mssql/server:2017-latest"
     volumes:
       - bars_db_data:/var/opt/mssql/data
+      - ./backup/:/var/opt/mssql/backup
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=${SQLSERVER_SA_PASSWORD:-MSSQL@1234}

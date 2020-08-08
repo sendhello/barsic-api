@@ -6,7 +6,7 @@
 ```console
 $ docker-compose -f dev_server/docker-compose.yml up
 ```
-* После запуска контейнеров(!!!) скопировать в папку `dev_server/bars_db_backup` бэкапы и переименовать их при необходимости в:
+* После сборки образа app (если это сделать ДО, то файлы резервных копий будут копироваться в образ, а это очень долго) скопировать в папку `dev_server/backup` бэкапы барса и переименовать их при необходимости в:
 `AquaPark_Ulyanovsk.bak`, `Beach.bak` и `bitrix_transaction.bak`
 * Распаковать бэкапы баз данных:
 ```bash
@@ -19,11 +19,6 @@ chmod +x dev_server/restore_backups.bash
 
 #### Ручная распаковка бекапов баз Барса в тестовую БД (при возникновении проблем с автоматической):
 *(Примеры указаны для БД AquaPark_Ulyanovsk)*
-* Скопировать бекапы в Docker-контейнер :
-```bash
-docker exec -it dev_server_bars_db_1 mkdir /var/opt/mssql/backup
-docker cp AquaPark_Ulyanovsk.bak dev_server_bars_db_1:/var/opt/mssql/backup
-```
 * Вывести список логических имен файлов и путей внутри резервной копии
 ```bash
 docker exec -it dev_server_bars_db_1 /opt/mssql-tools/bin/sqlcmd -S localhost \

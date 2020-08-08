@@ -66,7 +66,7 @@ class BaseReport(object):
             conn = pyodbc.connect(connect_string)
         except (pyodbc.OperationalError, pyodbc.ProgrammingError) as e:
             logger.error(repr(e))
-            errors = repr(e)
+            errors.append(repr(e))
             return None, errors
 
         return conn.cursor(), errors
