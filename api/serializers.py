@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from settings.models import DataBase
 
 
 class PeopleInZoneElementSerializer(serializers.Serializer):
@@ -54,3 +53,29 @@ class TotalReportSerializer(serializers.Serializer):
     errors = serializers.ListField()
     report_type = serializers.CharField(max_length=64)
     data = TotalReportDataSerializer()
+
+
+class CashReportDataSerializer(serializers.Serializer):
+    db_name = serializers.CharField()
+    date_from = serializers.DateTimeField()
+    date_to = serializers.DateTimeField()
+    report = serializers.DictField()
+
+
+class CashReportSerializer(serializers.Serializer):
+    status = serializers.CharField(max_length=64)
+    errors = serializers.ListField()
+    report_type = serializers.CharField(max_length=64)
+    data = CashReportDataSerializer()
+
+
+class ServicePointsReportDataSerializer(serializers.Serializer):
+    db_name = serializers.CharField()
+    report = serializers.DictField()
+
+
+class ServicePointsReportSerializer(serializers.Serializer):
+    status = serializers.CharField(max_length=64)
+    errors = serializers.ListField()
+    report_type = serializers.CharField(max_length=64)
+    data = CashReportDataSerializer()

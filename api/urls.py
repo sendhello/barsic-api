@@ -1,6 +1,7 @@
 from django.urls import path, include
 
-from api.views import PeopleInZoneView, CompanyView, TotalView, ClientCountView
+from api.views import (PeopleInZoneView, CompanyView, TotalReportView, TotalReportsView, ClientCountView,
+                       CashReportView, ServicePointsReportView)
 from rest_framework.routers import DefaultRouter
 
 # urlpatterns = [
@@ -11,7 +12,10 @@ from rest_framework.routers import DefaultRouter
 # ]
 
 router = DefaultRouter()
-router.register(r'people-in-zone', PeopleInZoneView, basename='people-in-zone')
+router.register(r'cash-report', CashReportView, basename='cash_report')
 router.register(r'companies', CompanyView, basename='companies')
-router.register(r'total_report', TotalView, basename='total_report')
+router.register(r'people-in-zone', PeopleInZoneView, basename='people_in_zone')
+router.register(r'service-points-report', ServicePointsReportView, basename='service_points_report')
+router.register(r'total-report', TotalReportView, basename='total_report')
+router.register(r'total-reports', TotalReportsView, basename='total_reports')
 urlpatterns = router.urls

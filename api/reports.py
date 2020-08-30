@@ -133,7 +133,7 @@ class TotalReport(BaseReport):
                        f"@hideInternal={self.data.hide_internal}")
         rows = cursor.fetchall()
         if not rows:
-            self.status = 'ok'
+            self.status = 'empty'
             self.data.report['Итого'] = Decimal('0.00')
             return self
 
@@ -190,3 +190,96 @@ class ClientCount(BaseReport):
             report[date] = row[1]
         return report
 
+
+class ServicePointsReport(BaseReport):
+    def __init__(self):
+        super(ServicePointsReport, self).__init__()
+        self.report_type = 'service_points_report'
+
+    def query(self, db_type):
+        db = DataBase.objects.filter(type=db_type).first()
+        cursor, errors = self.get_cursor(db, db_type=db_type)
+        self.errors += errors
+        self.data.db_name = db.title
+        if self.errors:
+            self.status = 'error'
+            return self
+
+        cursor.execute("SELECT ServicePointId, Name, SuperAccountId, Type, Code, IsInternal "
+                       "FROM ServicePoint")
+        rows = cursor.fetchall()
+        if not rows:
+            self.status = 'empty'
+            return self
+
+        report = {}
+        for row in rows:
+            report[row[0]] = {
+                'name': row[1],
+                'company_id': row[2],
+                'type': row[3],
+                'is_local': row[5]
+            }
+
+
+        self.status = 'ok'
+        self.data.report = report
+        return self
+
+
+class CashReport(BaseReport):
+    def __init__(self):
+        super(CashReport, self).__init__()
+        self.report_type = 'cash_report'
+
+    def query(self, db_type, date_from=None, date_to=None):
+        db = DataBase.objects.filter(type=db_type).first()
+        cursor, errors = self.get_cursor(db, db_type=db_type)
+        self.errors += errors
+        self.data.db_name = db.title
+        self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
+        self.errors += errors
+        if self.errors:
+            self.status = 'error'
+            return self
+
+        cursor.execute(
+            f"exec sp_reportCashDeskMoney "
+            f"@from='{self.data.date_from.strftime('%Y%m%d 00:00:00')}', "
+            f"@to='{self.data.date_to.strftime('%Y%m%d 00:00:00')}'"
+        )
+        rows = cursor.fetchall()
+        if not rows:
+            self.status = 'empty'
+            return self
+
+        report = {}
+        colums = ['service_point', 'sum', 'cash', 'bank', 'inside', 'bonus', 'lsi']
+        generator = {colum: Decimal(0.0) for colum in colums[1:]}
+        service_points = ServicePointsReport().query(db_type=db_type).data.report
+        for row in rows:
+            report.setdefault(row[-1], [])
+            report.setdefault('total_sum', {'service_point': 'Итого по отчету', **generator})
+            section_sum = report[row[-1]].pop() if report[row[-1]] else {'service_point': 'Итого', **generator}
+            report[row[-1]].append({
+                'service_point': service_points[row[0]]['name'],
+                **{colums[i]: row[i] for i in range(1, len(colums))}
+            })
+            section_sum = {
+                colums[i]: section_sum[colums[i]] + row[i]
+                if isinstance(section_sum[colums[i]], Decimal)
+                else section_sum[colums[i]]
+                for i in range(len(colums))
+            }
+            report[row[-1]].append(section_sum)
+            total_sum = report['total_sum']
+            report['total_sum'] = {
+                colums[i]: total_sum[colums[i]] + row[i]
+                if isinstance(total_sum[colums[i]], Decimal)
+                else total_sum[colums[i]]
+                for i in range(len(colums))
+            }
+
+        self.status = 'ok'
+        self.data.report = report
+        return self

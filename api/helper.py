@@ -2,25 +2,28 @@ from typing import Optional, Tuple, Dict
 from datetime import datetime, timedelta
 
 
+def reset_time(dt: datetime) -> datetime:
+    return datetime(year=dt.year, month=dt.month, day=dt.day)
+
+
 def check_date_params(date_from: Optional[str], date_to: Optional[str]) -> Tuple:
-    errors = []
     if date_from is None:
-        date_from = datetime.now()
+        date_from = reset_time(datetime.now())
     else:
         try:
-            date_from = datetime.strptime(date_from, '%Y%m%d')
+            date_from = reset_time(datetime.strptime(date_from, '%Y-%m-%d'))
         except ValueError as e:
-            errors.append(f'Неверный формат параметра date_from: {e}')
+            return None, None, [f'Неверный формат параметра date_from: {e}']
 
     if date_to is None:
-        date_to = date_from + timedelta(1)
+        date_to = reset_time(date_from + timedelta(1))
     else:
         try:
-            date_to = datetime.strptime(date_to, '%Y%m%d')
+            date_to = reset_time(datetime.strptime(date_to, '%Y-%m-%d'))
         except ValueError as e:
-            errors.append(f'Неверный формат параметра date_to: {e}')
+            return None, None, [f'Неверный формат параметра date_to: {e}']
 
-    return date_from, date_to, errors
+    return date_from, date_to, []
 
 
 def check_bool_params(param: str, default: str='0'):
