@@ -1,82 +1,78 @@
-from rest_framework import serializers
+from rest_framework.serializers import Serializer, DictField, CharField, ListField, DateTimeField, BooleanField
 
 
-class PeopleInZoneDataSerializer(serializers.Serializer):
-    report = serializers.DictField()
+class BasetSerializer(Serializer):
+    def create(self, validated_data):
+        pass
+
+    def update(self, instance, validated_data):
+        pass
 
 
-class PeopleInZoneSerializer(serializers.Serializer):
-    status = serializers.CharField(max_length=64)
-    errors = serializers.ListField()
-    report_type = serializers.CharField(max_length=64)
+class RootSerializer(BasetSerializer):
+    status = CharField(max_length=64)
+    errors = ListField()
+    report_type = CharField(max_length=64)
+
+
+class ReportSerializer(BasetSerializer):
+    report = DictField()
+
+
+class DateMixin:
+    date_from = DateTimeField()
+    date_to = DateTimeField()
+
+
+class DbNameMixin:
+    db_name = CharField()
+
+
+class PeopleInZoneDataSerializer(ReportSerializer):
+    pass
+
+
+class PeopleInZoneSerializer(RootSerializer):
     data = PeopleInZoneDataSerializer()
 
 
-class CompanyDataSerializer(serializers.Serializer):
-    db_name = serializers.CharField()
-    report = serializers.DictField()
+class CompanyDataSerializer(ReportSerializer, DbNameMixin):
+    pass
 
 
-class CompanySerializer(serializers.Serializer):
-    status = serializers.CharField(max_length=64)
-    errors = serializers.ListField()
-    report_type = serializers.CharField(max_length=64)
+class CompanySerializer(RootSerializer):
     data = CompanyDataSerializer()
 
 
-class TotalReportDataSerializer(serializers.Serializer):
-    db_name = serializers.CharField()
-    company_name = serializers.CharField()
-    date_from = serializers.DateTimeField()
-    date_to = serializers.DateTimeField()
-    hide_zero = serializers.BooleanField()
-    hide_internal = serializers.BooleanField()
-    report = serializers.DictField()
+class TotalReportDataSerializer(ReportSerializer, DbNameMixin, DateMixin):
+    company_name = CharField()
+    hide_zero = BooleanField()
+    hide_internal = BooleanField()
 
 
-class TotalReportSerializer(serializers.Serializer):
-    status = serializers.CharField(max_length=64)
-    errors = serializers.ListField()
-    report_type = serializers.CharField(max_length=64)
+class TotalReportSerializer(RootSerializer):
     data = TotalReportDataSerializer()
 
 
-class ClientCountReportDataSerializer(serializers.Serializer):
-    db_name = serializers.CharField()
-    company_name = serializers.CharField()
-    date_from = serializers.DateTimeField()
-    date_to = serializers.DateTimeField()
-    report = serializers.DictField()
+class ClientCountReportDataSerializer(ReportSerializer,DbNameMixin, DateMixin):
+    company_name = CharField()
 
 
-class ClientCountReportSerializer(serializers.Serializer):
-    status = serializers.CharField(max_length=64)
-    errors = serializers.ListField()
-    report_type = serializers.CharField(max_length=64)
+class ClientCountReportSerializer(RootSerializer):
     data = ClientCountReportDataSerializer()
 
 
-class CashReportDataSerializer(serializers.Serializer):
-    db_name = serializers.CharField()
-    date_from = serializers.DateTimeField()
-    date_to = serializers.DateTimeField()
-    report = serializers.DictField()
+class CashReportDataSerializer(ReportSerializer, DbNameMixin, DateMixin):
+    pass
 
 
-class CashReportSerializer(serializers.Serializer):
-    status = serializers.CharField(max_length=64)
-    errors = serializers.ListField()
-    report_type = serializers.CharField(max_length=64)
+class CashReportSerializer(RootSerializer):
     data = CashReportDataSerializer()
 
 
-class ServicePointsReportDataSerializer(serializers.Serializer):
-    db_name = serializers.CharField()
-    report = serializers.DictField()
+class ServicePointsReportDataSerializer(ReportSerializer, DbNameMixin):
+    pass
 
 
-class ServicePointsReportSerializer(serializers.Serializer):
-    status = serializers.CharField(max_length=64)
-    errors = serializers.ListField()
-    report_type = serializers.CharField(max_length=64)
-    data = CashReportDataSerializer()
+class ServicePointsReportSerializer(RootSerializer):
+    data = ServicePointsReportDataSerializer()
