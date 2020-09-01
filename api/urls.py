@@ -1,18 +1,14 @@
-from django.urls import path, include
-
-from api.views import (PeopleInZoneView, CompanyView, TotalReportView, TotalReportsView, ClientCountView,
-                       CashReportView, ServicePointsReportView)
 from rest_framework.routers import DefaultRouter
 
-# urlpatterns = [
-#     path('people-in-zone/', PeopleInZoneView.as_view({'get': 'retrieve'}), name='people-in-zone'),
-#     path('companies/', AllCompanyView.as_view(), name='companies'),
-#     path('total/', TotalView.as_view(), name='total'),
-#     path('client-count/', ClientCountView.as_view(), name='client-count'),
-# ]
+from api.views import (
+    PeopleInZoneView, CompanyView, TotalReportView, TotalReportsView, ClientCountReportView, ClientCountReportsView,
+    CashReportView, ServicePointsReportView
+)
 
 router = DefaultRouter()
 router.register(r'cash-report', CashReportView, basename='cash_report')
+router.register(r'client-count-report', ClientCountReportView, basename='client_count_report')
+router.register(r'client-count-reports', ClientCountReportsView, basename='client_count_reports')
 router.register(r'companies', CompanyView, basename='companies')
 router.register(r'people-in-zone', PeopleInZoneView, basename='people_in_zone')
 router.register(r'service-points-report', ServicePointsReportView, basename='service_points_report')

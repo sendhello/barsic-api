@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timedelta
 from decimal import Decimal
 
 from settings.models import DataBase
@@ -156,39 +155,42 @@ class TotalReport(BaseReport):
         return self
 
 
-class ClientCount(BaseReport):
-    def __init__(self, db, date_from=None, date_to=None):
-        super(ClientCount, self).__init__(db)
-        if date_from is None:
-            date_from = datetime.now().strftime('%Y%m%d 00:00:00')
-        self.date_from = date_from
-        if date_to is None:
-            date_to = (datetime.now() + timedelta(1)).strftime('%Y%m%d 00:00:00')
-        self.date_to = date_to
+class ClientCountReport(BaseReport):
+    def __init__(self):
+        super(ClientCountReport, self).__init__()
+        self.report_type = 'client_count_report'
 
-    def query(self, db_type:str):
+    def query(self, db_type, company_id, date_from=None, date_to=None):
         db = DataBase.objects.filter(type=db_type).first()
         cursor, errors = self.get_cursor(db, db_type=db_type)
-        if errors:
+        self.errors += errors
+        self.data.db_name = db.title
+        self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
+        self.errors += errors
+        if self.errors:
             self.status = 'error'
-            self.errors += errors
-            return None
-        company = Companies().get_first_company()
+            return self
+
+        companies = Companies().query(db_type=db_type).data.report
+        self.data.company_name, errors = get_company(company_id, companies)
+        self.errors += errors
+        if self.errors:
+            self.status = 'error'
+            return self
+
         cursor.execute(
-            f"exec sp_reportClientCountTotals @sa={company.company_id},"
-            f"@from='{self.date_from}',@to='{self.date_to}',@categoryId=0"
+            f"exec sp_reportClientCountTotals @sa={company_id},"
+            f"@from='{self.data.date_from.strftime('%Y%m%d 00:00:00')}',"
+            f"@to='{self.data.date_to.strftime('%Y%m%d 00:00:00')}',@categoryId=0"
         )
         rows = cursor.fetchall()
         if not rows:
-            return {}
-        return self.to_json(rows)
+            self.status = 'empty'
+            return self
 
-    def to_json(self, rows):
-        report = {}
-        for row in rows:
-            date = row[0].strftime('%Y%m%d')
-            report[date] = row[1]
-        return report
+        self.status = 'ok'
+        self.data.report = {row[0].strftime('%Y-%m-%d'): row[1] for row in rows}
+        return self
 
 
 class ServicePointsReport(BaseReport):
@@ -205,8 +207,8 @@ class ServicePointsReport(BaseReport):
             self.status = 'error'
             return self
 
-        cursor.execute("SELECT ServicePointId, Name, SuperAccountId, Type, Code, IsInternal "
-                       "FROM ServicePoint")
+        cursor.execute(f"SELECT ServicePointId, Name, SuperAccountId, Type, Code, IsInternal "
+                       f"FROM ServicePoint")
         rows = cursor.fetchall()
         if not rows:
             self.status = 'empty'

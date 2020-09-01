@@ -55,6 +55,21 @@ class TotalReportSerializer(serializers.Serializer):
     data = TotalReportDataSerializer()
 
 
+class ClientCountReportDataSerializer(serializers.Serializer):
+    db_name = serializers.CharField()
+    company_name = serializers.CharField()
+    date_from = serializers.DateTimeField()
+    date_to = serializers.DateTimeField()
+    report = serializers.DictField()
+
+
+class ClientCountReportSerializer(serializers.Serializer):
+    status = serializers.CharField(max_length=64)
+    errors = serializers.ListField()
+    report_type = serializers.CharField(max_length=64)
+    data = ClientCountReportDataSerializer()
+
+
 class CashReportDataSerializer(serializers.Serializer):
     db_name = serializers.CharField()
     date_from = serializers.DateTimeField()
