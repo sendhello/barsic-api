@@ -87,14 +87,16 @@ class Companies(BaseReport):
             self.errors.append(f'Не найдено ни одной организации в БД "{db.title}"')
             return self
 
-        self.data.report = {row[0]: CompaniesData(
-            name=row[1],
-            address=row[2],
-            inn=row[3],
-            email=row[4],
-            tel=row[5],
-            site=row[6]
-        ) for row in rows}
+        self.data.report = {
+            row[0]: {
+                'name': row[1],
+                'address': row[2],
+                'inn': row[3],
+                'email': row[4],
+                'tel': row[5],
+                'site': row[6]
+            } for row in rows
+        }
         self.status = 'ok'
         return self
 

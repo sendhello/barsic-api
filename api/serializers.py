@@ -1,11 +1,6 @@
 from rest_framework import serializers
 
 
-class PeopleInZoneElementSerializer(serializers.Serializer):
-    zone = serializers.CharField()
-    people_count = serializers.IntegerField()
-
-
 class PeopleInZoneDataSerializer(serializers.Serializer):
     report = serializers.DictField()
 
@@ -17,18 +12,9 @@ class PeopleInZoneSerializer(serializers.Serializer):
     data = PeopleInZoneDataSerializer()
 
 
-class CompanyElementSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    address = serializers.CharField()
-    inn = serializers.CharField()
-    email = serializers.CharField()
-    tel = serializers.CharField()
-    site = serializers.CharField()
-
-
 class CompanyDataSerializer(serializers.Serializer):
     db_name = serializers.CharField()
-    report = serializers.DictField(child=CompanyElementSerializer())
+    report = serializers.DictField()
 
 
 class CompanySerializer(serializers.Serializer):
