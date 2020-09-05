@@ -17,6 +17,7 @@ class RootSerializer(BasetSerializer):
 
 class ReportSerializer(BasetSerializer):
     report = DictField()
+    db_name = CharField()
 
 
 class DateMixin:

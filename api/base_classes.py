@@ -1,11 +1,11 @@
 import logging
-from typing import Optional, Tuple, List, Any
 from datetime import datetime
+from typing import Optional, Tuple, List, Any, Dict
 
 import pyodbc
+from django.core.exceptions import ObjectDoesNotExist
 
 from settings.models import DataBase
-from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,8 @@ class CompaniesData(BaseData):
 
 
 class BaseReport(object):
-    def __init__(self):
+    def __init__(self, db_type: str):
+        self.db_type = db_type
         self.status = 'undefined'
         self.errors = []
         self.report_type = None
@@ -55,18 +56,31 @@ class BaseReport(object):
         self.data.report = {}
 
     @staticmethod
-    def get_cursor(db: DataBase, db_type: str = '') -> Tuple[Optional[Any], List]:
-        errors = []
-        if not db:
-            errors.append(f'Не указано соответствие базе данных {db_type}')
-            return None, errors
+    def get_cursor(db: DataBase) -> Tuple[Optional[Any], List]:
         connect_string = f'DRIVER={db.driver};SERVER={db.server},{db.port};DATABASE={db.database};UID={db.user};PWD={db.pwd}'
+        conn = pyodbc.connect(connect_string)
+        return conn.cursor()
+
+    def _query(self, request: str) -> List[Any]:
         try:
-            logger.info(f'Попытка соединения c БД {db.title}')
-            conn = pyodbc.connect(connect_string)
+            db = DataBase.objects.get(type=self.db_type)
+        except ObjectDoesNotExist:
+            self.errors.append(f'Не найдена база данных с алиасом {self.db_type}')
+            self.status = 'error'
+            return []
+
+        try:
+            cursor = self.get_cursor(db)
         except (pyodbc.OperationalError, pyodbc.ProgrammingError) as e:
             logger.error(repr(e))
-            errors.append(repr(e))
-            return None, errors
+            self.errors.append(repr(e))
+            self.status = 'error'
+            return []
 
-        return conn.cursor(), errors
+        self.data.db_name = db.title
+        cursor.execute(request)
+        rows = cursor.fetchall()
+        return rows
+
+    def query(self):
+        raise IndentationError

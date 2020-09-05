@@ -4,27 +4,20 @@ from decimal import Decimal
 from settings.models import DataBase
 from .base_classes import BaseReport, CompaniesData
 from .helper import check_date_params, check_bool_params, get_company
+from typing import Optional, Tuple, List, Any, Dict
 
 logger = logging.getLogger(__name__)
 
 
 class PeopleInZone(BaseReport):
-    def __init__(self):
-        super(PeopleInZone, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(PeopleInZone, self).__init__(*args, **kwargs)
         self.report_type = 'people_in_zone'
 
     def query(self):
-        db_type = 'aqua'
-        db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db, db_type=db_type)
-        if errors:
-            self.status = 'error'
-            self.errors += errors
-            return self
-
-        cursor.execute(
-            f"""{''}
-                SELECT
+        rows = self._query(
+            request=f"""
+                {''}SELECT
                     [gr].[c1] as [c11],
                     [gr].[StockCategory_Id] as [StockCategory_Id1],
                     [c].[Name],
@@ -46,42 +39,30 @@ class PeopleInZone(BaseReport):
                             [_].[CategoryId]
                     ) [gr]
                         INNER JOIN [Category] [c] ON [gr].[StockCategory_Id] = [c].[CategoryId]
-            """)
-        rows = cursor.fetchall()
-
-        if rows:
-            self.data.report = {row[2]: row[1] for row in rows}
-        else:
-            self.data.report = {'Все зоны': 0}
-        self.status = 'ok'
+                """
+        )
+        self.data.report = {row[2]: row[1] for row in rows} or {'Все зоны': 0}
+        self.status = 'ok' if not self.status else self.status
         return self
 
 
 class Companies(BaseReport):
-    def __init__(self):
-        super(Companies, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(Companies, self).__init__(*args, **kwargs)
         self.report_type = 'companies'
 
-    def query(self, db_type):
+    def query(self):
         super_account_type = 1
-        db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db, db_type=db_type)
-        if errors:
-            self.status = 'error'
-            self.errors += errors
-            return self
-
-        self.data.db_name = db.title
-        cursor.execute(
-            f"""{''}
-            SELECT
-                SuperAccountId, Descr, Address, Inn, Email, Phone, WebSite
-            FROM
-                SuperAccount
-            WHERE
-                Type={super_account_type}
-            """)
-        rows = cursor.fetchall()
+        rows = self._query(
+            request=f"""{''}
+                SELECT
+                    SuperAccountId, Descr, Address, Inn, Email, Phone, WebSite
+                FROM
+                    SuperAccount
+                WHERE
+                    Type={super_account_type}
+                """
+        )
         if not rows:
             self.status = 'error'
             self.errors.append(f'Не найдено ни одной организации в БД "{db.title}"')
@@ -102,37 +83,34 @@ class Companies(BaseReport):
 
 
 class TotalReport(BaseReport):
-    def __init__(self):
-        super(TotalReport, self).__init__()
+    def __init__(self, company_id, date_from=None, date_to=None, hide_zero=None, hide_internal=None, *args, **kwargs):
+        super(TotalReport, self).__init__(*args, **kwargs)
         self.report_type = 'total_report'
-
-    def query(self, db_type, company_id, date_from=None, date_to=None, hide_zero=None, hide_internal=None):
-        db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db, db_type=db_type)
-        self.errors += errors
-        self.data.db_name = db.title
+        self.company_id = company_id
         self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
         self.errors += errors
         self.data.hide_zero, errors = check_bool_params(hide_zero)
         self.errors += errors
         self.data.hide_internal, errors = check_bool_params(hide_internal, default='1')
         self.errors += errors
+
+    def query(self):
         if self.errors:
             self.status = 'error'
             return self
-
-        companies = Companies().query(db_type=db_type).data.report
-        self.data.company_name, errors = get_company(company_id, companies)
+        companies = Companies(self.db_type).query().data.report
+        self.data.company_name, errors = get_company(self.company_id, companies)
         self.errors += errors
         if self.errors:
             self.status = 'error'
             return self
 
-        cursor.execute(f"exec sp_reportOrganizationTotals_v2 @sa={company_id},"
-                       f"@from='{self.data.date_from.strftime('%Y%m%d 00:00:00')}',"
-                       f"@to='{self.data.date_to.strftime('%Y%m%d 00:00:00')}',@hideZeroes={self.data.hide_zero},"
-                       f"@hideInternal={self.data.hide_internal}")
-        rows = cursor.fetchall()
+        rows = self._query(
+            request=f"exec sp_reportOrganizationTotals_v2 @sa={self.company_id},"
+                    f"@from='{self.data.date_from.strftime('%Y%m%d 00:00:00')}',"
+                    f"@to='{self.data.date_to.strftime('%Y%m%d 00:00:00')}',@hideZeroes={self.data.hide_zero},"
+                    f"@hideInternal={self.data.hide_internal}"
+        )
         if not rows:
             self.status = 'empty'
             self.data.report['Итого'] = Decimal('0.00')
@@ -158,34 +136,30 @@ class TotalReport(BaseReport):
 
 
 class ClientCountReport(BaseReport):
-    def __init__(self):
-        super(ClientCountReport, self).__init__()
+    def __init__(self, company_id, date_from=None, date_to=None, *args, **kwargs):
+        super(ClientCountReport, self).__init__(*args, **kwargs)
         self.report_type = 'client_count_report'
-
-    def query(self, db_type, company_id, date_from=None, date_to=None):
-        db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db, db_type=db_type)
-        self.errors += errors
-        self.data.db_name = db.title
+        self.company_id = company_id
         self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
         self.errors += errors
+
+    def query(self):
         if self.errors:
             self.status = 'error'
             return self
 
-        companies = Companies().query(db_type=db_type).data.report
-        self.data.company_name, errors = get_company(company_id, companies)
+        companies = Companies(self.db_type).query().data.report
+        self.data.company_name, errors = get_company(self.company_id, companies)
         self.errors += errors
         if self.errors:
             self.status = 'error'
             return self
 
-        cursor.execute(
-            f"exec sp_reportClientCountTotals @sa={company_id},"
-            f"@from='{self.data.date_from.strftime('%Y%m%d 00:00:00')}',"
-            f"@to='{self.data.date_to.strftime('%Y%m%d 00:00:00')}',@categoryId=0"
+        rows = self._query(
+            request=f"exec sp_reportClientCountTotals @sa={self.company_id},"
+                    f"@from='{self.data.date_from.strftime('%Y%m%d 00:00:00')}',"
+                    f"@to='{self.data.date_to.strftime('%Y%m%d 00:00:00')}',@categoryId=0"
         )
-        rows = cursor.fetchall()
         if not rows:
             self.status = 'empty'
             return self
@@ -196,22 +170,15 @@ class ClientCountReport(BaseReport):
 
 
 class ServicePointsReport(BaseReport):
-    def __init__(self):
-        super(ServicePointsReport, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(ServicePointsReport, self).__init__(*args, **kwargs)
         self.report_type = 'service_points_report'
 
-    def query(self, db_type):
-        db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db, db_type=db_type)
-        self.errors += errors
-        self.data.db_name = db.title
-        if self.errors:
-            self.status = 'error'
-            return self
-
-        cursor.execute(f"SELECT ServicePointId, Name, SuperAccountId, Type, Code, IsInternal "
-                       f"FROM ServicePoint")
-        rows = cursor.fetchall()
+    def query(self):
+        rows = self._query(
+            request=f"{''}SELECT ServicePointId, Name, SuperAccountId, Type, Code, IsInternal "
+                    f"FROM ServicePoint"
+        )
         if not rows:
             self.status = 'empty'
             return self
@@ -225,34 +192,28 @@ class ServicePointsReport(BaseReport):
                 'is_local': row[5]
             }
 
-
         self.status = 'ok'
         self.data.report = report
         return self
 
 
 class CashReport(BaseReport):
-    def __init__(self):
-        super(CashReport, self).__init__()
+    def __init__(self, date_from=None, date_to=None, *args, **kwargs):
+        super(CashReport, self).__init__(*args, **kwargs)
         self.report_type = 'cash_report'
-
-    def query(self, db_type, date_from=None, date_to=None):
-        db = DataBase.objects.filter(type=db_type).first()
-        cursor, errors = self.get_cursor(db, db_type=db_type)
-        self.errors += errors
-        self.data.db_name = db.title
         self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
         self.errors += errors
+
+    def query(self):
         if self.errors:
             self.status = 'error'
             return self
 
-        cursor.execute(
-            f"exec sp_reportCashDeskMoney "
-            f"@from='{self.data.date_from.strftime('%Y%m%d 00:00:00')}', "
-            f"@to='{self.data.date_to.strftime('%Y%m%d 00:00:00')}'"
+        rows = self._query(
+            request=f"exec sp_reportCashDeskMoney "
+                    f"@from='{self.data.date_from.strftime('%Y%m%d 00:00:00')}', "
+                    f"@to='{self.data.date_to.strftime('%Y%m%d 00:00:00')}'"
         )
-        rows = cursor.fetchall()
         if not rows:
             self.status = 'empty'
             return self
@@ -260,7 +221,7 @@ class CashReport(BaseReport):
         report = {}
         colums = ['service_point', 'sum', 'cash', 'bank', 'inside', 'bonus', 'lsi']
         generator = {colum: Decimal(0.0) for colum in colums[1:]}
-        service_points = ServicePointsReport().query(db_type=db_type).data.report
+        service_points = ServicePointsReport(db_type=self.db_type).query().data.report
         for row in rows:
             report.setdefault(row[-1], [])
             report.setdefault('total_sum', {'service_point': 'Итого по отчету', **generator})
