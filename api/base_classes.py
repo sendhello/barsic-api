@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional, Tuple, List, Any, Dict
 
@@ -10,15 +11,9 @@ from settings.models import DataBase
 logger = logging.getLogger(__name__)
 
 
-class BaseData(object):
-    def __init__(self):
-        pass
-
-
-class Data(BaseData):
+class ReportData:
     def __init__(self, report=None, db_name=None, company_name=None, date_from=None,
                  date_to=None, hide_zero=None, hide_internal=None):
-        super(Data, self).__init__()
         self.report: Dict = report
         self.db_name: str = db_name
         self.company_name: str = company_name
@@ -28,31 +23,13 @@ class Data(BaseData):
         self.hide_internal: bool = hide_internal
 
 
-class PeoplesInZoneData(BaseData):
-    def __init__(self, zone, people_count):
-        super(PeoplesInZoneData, self).__init__()
-        self.zone: str = zone
-        self.people_count: int = people_count
-
-
-class CompaniesData(BaseData):
-    def __init__(self, name, address, inn, email, tel, site):
-        super(CompaniesData, self).__init__()
-        self.name: str = name
-        self.address: str = address
-        self.inn: str = inn
-        self.email: str = email
-        self.tel: str = tel
-        self.site: str = site
-
-
-class BaseReport(object):
+class BaseReport(ABC):
     def __init__(self, db_type: str):
         self.db_type = db_type
         self.status = 'undefined'
         self.errors = []
         self.report_type = None
-        self.data = Data()
+        self.data = ReportData()
         self.data.report = {}
 
     @staticmethod
@@ -82,5 +59,6 @@ class BaseReport(object):
         rows = cursor.fetchall()
         return rows
 
+    @abstractmethod
     def query(self):
         raise IndentationError

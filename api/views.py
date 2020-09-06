@@ -1,3 +1,6 @@
+from abc import ABC, abstractmethod
+from typing import Optional, List
+
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
@@ -7,10 +10,8 @@ from .serializers import (
     ServicePointsReportSerializer, ClientCountReportSerializer
 )
 
-from typing import Optional, List
 
-
-class BaseViewSet(ViewSet):
+class BaseViewSet(ViewSet, ABC):
     def __init__(self, *args, **kwargs):
         super(BaseViewSet, self).__init__(*args, **kwargs)
         self.db_type: Optional[str] = None
@@ -20,7 +21,10 @@ class BaseViewSet(ViewSet):
         self.hide_zero: Optional[str] = None
         self.hide_internal: Optional[str] = None
         self.errors: List[str] = []
+        self.allowed_request_params = ['db_type']
+        self.required_request_params = ['db_type']
 
+    @abstractmethod
     def list(self, request):
         self.db_type = request.GET.get('db_type', None)
         self.company_id = request.GET.get('company_id', None)
@@ -29,6 +33,13 @@ class BaseViewSet(ViewSet):
         self.hide_zero = request.GET.get('hide_zero', None)
         self.hide_internal = request.GET.get('hide_internal', None)
 
+        for request_param in self.required_request_params:
+            if request_param not in request.GET.keys():
+                self.errors.append(f'Не указан обязательный параметр {request_param}')
+        for request_param in request.GET.keys():
+            if request_param not in self.allowed_request_params:
+                self.errors.append(f'Параметр {request_param} не является разрешенным для данного запроса')
+
     def raise_error(self):
         return Response({'status': 'error', 'errors': self.errors, 'data': None})
 
@@ -36,8 +47,6 @@ class BaseViewSet(ViewSet):
 class PeopleInZoneView(BaseViewSet):
     def list(self, request):
         super(PeopleInZoneView, self).list(request)
-        if not self.db_type:
-            self.errors.append('Не указан обязательный параметр db_type')
         if self.errors:
             return self.raise_error()
 
@@ -49,21 +58,22 @@ class PeopleInZoneView(BaseViewSet):
 class CompanyView(BaseViewSet):
     def list(self, request):
         super(CompanyView, self).list(request)
-        if not self.db_type:
-            self.errors.append('Не указаны необходимые параметры: db_type')
+        if self.errors:
             return self.raise_error()
+
         report = Companies(self.db_type).query()
         serializer = CompanySerializer(report)
         return Response(serializer.data)
 
 
 class TotalReportView(BaseViewSet):
+    def __init__(self, *args, **kwargs):
+        super(TotalReportView, self).__init__(*args, **kwargs)
+        self.allowed_request_params.extend(['company_id', 'date_from', 'date_to', 'hide_zero', 'hide_internal'])
+        self.required_request_params.append('company_id')
+
     def list(self, request):
         super(TotalReportView, self).list(request)
-        if not self.db_type:
-            self.errors.append('Не указан обязательный параметр db_type')
-        if not self.company_id:
-            self.errors.append('Не указан обязательный параметр company_id')
         if self.errors:
             return self.raise_error()
 
@@ -72,7 +82,7 @@ class TotalReportView(BaseViewSet):
             company_id=self.company_id,
             date_from=self.date_from,
             date_to=self.date_to,
-            hide_zero=self.ide_zero,
+            hide_zero=self.hide_zero,
             hide_internal=self.hide_internal
         ).query()
         serializer = TotalReportSerializer(report)
@@ -80,10 +90,12 @@ class TotalReportView(BaseViewSet):
 
 
 class TotalReportsView(BaseViewSet):
+    def __init__(self, *args, **kwargs):
+        super(TotalReportsView, self).__init__(*args, **kwargs)
+        self.allowed_request_params.extend(['date_from', 'date_to', 'hide_zero', 'hide_internal'])
+
     def list(self, request):
         super(TotalReportsView, self).list(request)
-        if not self.db_type:
-            self.errors.append('Не указан обязательный параметр db_type')
         if self.errors:
             return self.raise_error()
 
@@ -105,12 +117,13 @@ class TotalReportsView(BaseViewSet):
 
 
 class ClientCountReportView(BaseViewSet):
+    def __init__(self, *args, **kwargs):
+        super(ClientCountReportView, self).__init__(*args, **kwargs)
+        self.allowed_request_params.extend(['company_id', 'date_from', 'date_to'])
+        self.required_request_params.append('company_id')
+
     def list(self, request):
         super(ClientCountReportView, self).list(request)
-        if not self.db_type:
-            self.errors.append('Не указан обязательный параметр db_type')
-        if not self.company_id:
-            self.errors.append('Не указан обязательный параметр company_id')
         if self.errors:
             return self.raise_error()
 
@@ -125,10 +138,12 @@ class ClientCountReportView(BaseViewSet):
 
 
 class ClientCountReportsView(BaseViewSet):
+    def __init__(self, *args, **kwargs):
+        super(ClientCountReportsView, self).__init__(*args, **kwargs)
+        self.allowed_request_params.extend(['date_from', 'date_to'])
+
     def list(self, request):
         super(ClientCountReportsView, self).list(request)
-        if not self.db_type:
-            self.errors.append('Не указан обязательный параметр db_type')
         if self.errors:
             return self.raise_error()
 
@@ -150,8 +165,6 @@ class ClientCountReportsView(BaseViewSet):
 class ServicePointsReportView(BaseViewSet):
     def list(self, request):
         super(ServicePointsReportView, self).list(request)
-        if not self.db_type:
-            self.errors.append('Не указан обязательный параметр db_type')
         if self.errors:
             return self.raise_error()
 
@@ -161,10 +174,12 @@ class ServicePointsReportView(BaseViewSet):
 
 
 class CashReportView(BaseViewSet):
+    def __init__(self, *args, **kwargs):
+        super(CashReportView, self).__init__(*args, **kwargs)
+        self.allowed_request_params.extend(['date_from', 'date_to'])
+
     def list(self, request):
         super(CashReportView, self).list(request)
-        if not self.db_type:
-            self.errors.append('Не указан обязательный параметр db_type')
         if self.errors:
             return self.raise_error()
 

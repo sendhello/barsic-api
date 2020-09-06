@@ -1,7 +1,7 @@
 from rest_framework.serializers import Serializer, DictField, CharField, ListField, DateTimeField, BooleanField
 
 
-class BasetSerializer(Serializer):
+class BaseSerializer(Serializer):
     def create(self, validated_data):
         pass
 
@@ -9,13 +9,13 @@ class BasetSerializer(Serializer):
         pass
 
 
-class RootSerializer(BasetSerializer):
+class RootSerializer(BaseSerializer):
     status = CharField(max_length=64)
     errors = ListField()
     report_type = CharField(max_length=64)
 
 
-class ReportSerializer(BasetSerializer):
+class ReportSerializer(BaseSerializer):
     report = DictField()
     db_name = CharField()
 

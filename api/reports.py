@@ -1,10 +1,8 @@
 import logging
 from decimal import Decimal
 
-from settings.models import DataBase
-from .base_classes import BaseReport, CompaniesData
+from .base_classes import BaseReport
 from .helper import check_date_params, check_bool_params, get_company
-from typing import Optional, Tuple, List, Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +63,7 @@ class Companies(BaseReport):
         )
         if not rows:
             self.status = 'error'
-            self.errors.append(f'Не найдено ни одной организации в БД "{db.title}"')
+            self.errors.append(f'Не найдено ни одной организации в БД "{self.data.db_name}"')
             return self
 
         self.data.report = {
