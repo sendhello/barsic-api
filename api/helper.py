@@ -53,3 +53,13 @@ def convert_total_reports_to_product_dict(total_reports: List):
                     products[product_name] = product
 
     return products
+
+
+def period_partition(date_from: datetime, date_to: datetime) -> List[datetime]:
+    date_list = []
+    current_date = date_from
+    while current_date < date_to:
+        date_list.append(current_date)
+        current_date += timedelta(days=1)
+
+    return date_list

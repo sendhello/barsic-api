@@ -92,3 +92,13 @@ class FinanceReportDataSerializer(ReportSerializer):
 
 class FinanceReportSerializer(RootSerializer):
     data = FinanceReportDataSerializer()
+
+
+class FinanceByDayReportDataSerializer(BaseSerializer):
+    report = ListField()
+    date_from = DateTimeField()
+    date_to = DateTimeField()
+
+
+class FinanceByDayReportSerializer(RootSerializer):
+    data = FinanceByDayReportDataSerializer()

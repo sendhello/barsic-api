@@ -6,11 +6,12 @@ from rest_framework.viewsets import ViewSet
 
 from api.reports import (
     PeopleInZone, Companies, TotalReport, ClientCountReport, CashReport, ServicePointsReport, BitrixReport,
-    FinanceReport
+    FinanceReport, FinanceReportByDay
 )
 from .serializers import (
     PeopleInZoneSerializer, CompanySerializer, TotalReportSerializer, CashReportSerializer,
-    ServicePointsReportSerializer, ClientCountReportSerializer, BitrixReportSerializer, FinanceReportSerializer
+    ServicePointsReportSerializer, ClientCountReportSerializer, BitrixReportSerializer, FinanceReportSerializer,
+    FinanceByDayReportSerializer
 )
 import re
 
@@ -236,4 +237,24 @@ class FinanceReportView(BaseViewSet):
         ).query()
 
         serializer = FinanceReportSerializer(report)
+        return Response(serializer.data)
+
+
+class FinanceReportByDayView(BaseViewSet):
+    def __init__(self, *args, **kwargs):
+        super(FinanceReportByDayView, self).__init__(*args, **kwargs)
+        self.allowed_request_params = ['date_from', 'date_to']
+        self.required_request_params = []
+
+    def list(self, request):
+        super(FinanceReportByDayView, self).list(request)
+        if self.errors:
+            return self.raise_error()
+
+        report = FinanceReportByDay(
+            date_from=self.date_from,
+            date_to=self.date_to
+        ).query()
+
+        serializer = FinanceByDayReportSerializer(report)
         return Response(serializer.data)

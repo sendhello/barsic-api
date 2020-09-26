@@ -1,9 +1,11 @@
 import logging
+from datetime import timedelta
 from decimal import Decimal
 
-from .base_classes import BaseReport
-from .helper import check_date_params, check_bool_params, get_company, convert_total_reports_to_product_dict
 from settings.models import Tariff
+from .base_classes import BaseReport
+from .helper import (
+    check_date_params, check_bool_params, get_company, convert_total_reports_to_product_dict, period_partition)
 
 logger = logging.getLogger(__name__)
 
@@ -328,8 +330,37 @@ class FinanceReport(BaseReport):
                 elem['sum'] += products[tariff.title]['sum']
 
             if tariff.title == 'Битрикс':
-                elem['count'] += report_bitrix.data.report['count']
-                elem['sum'] += report_bitrix.data.report['sum']
+                bitrix_data = report_bitrix.data.report
+                elem['count'] += bitrix_data['count'] if bitrix_data else 0
+                elem['sum'] += bitrix_data['sum'] if bitrix_data else 0
+
+        self.status = 'ok'
+        self.data.report = report
+        return self
+
+
+class FinanceReportByDay(BaseReport):
+    def __init__(self, date_from=None, date_to=None, *args, **kwargs):
+        super(FinanceReportByDay, self).__init__(db_type='', *args, **kwargs)
+        self.report_type = 'finance_report_by_day'
+        self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
+        self.errors += errors
+
+    def query(self):
+        if self.errors:
+            self.status = 'error'
+            return self
+
+        period = period_partition(self.data.date_from, self.data.date_to)
+
+        report = []
+        for date in period:
+            report.append(
+                FinanceReport(
+                    date_from=date.strftime('%Y-%m-%d'),
+                    date_to=(date + timedelta(1)).strftime('%Y-%m-%d')
+                ).query().data.report
+            )
 
         self.status = 'ok'
         self.data.report = report
