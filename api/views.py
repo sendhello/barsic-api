@@ -5,10 +5,12 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
 from api.reports import (
-    PeopleInZone, Companies, TotalReport, ClientCountReport, CashReport, ServicePointsReport, BitrixReport)
+    PeopleInZone, Companies, TotalReport, ClientCountReport, CashReport, ServicePointsReport, BitrixReport,
+    FinanceReport
+)
 from .serializers import (
     PeopleInZoneSerializer, CompanySerializer, TotalReportSerializer, CashReportSerializer,
-    ServicePointsReportSerializer, ClientCountReportSerializer, BitrixReportSerializer
+    ServicePointsReportSerializer, ClientCountReportSerializer, BitrixReportSerializer, FinanceReportSerializer
 )
 import re
 
@@ -214,4 +216,24 @@ class BitrixReportView(BaseViewSet):
             date_to=self.date_to
         ).query()
         serializer = BitrixReportSerializer(report)
+        return Response(serializer.data)
+
+
+class FinanceReportView(BaseViewSet):
+    def __init__(self, *args, **kwargs):
+        super(FinanceReportView, self).__init__(*args, **kwargs)
+        self.allowed_request_params = ['date_from', 'date_to']
+        self.required_request_params = []
+
+    def list(self, request):
+        super(FinanceReportView, self).list(request)
+        if self.errors:
+            return self.raise_error()
+
+        report = FinanceReport(
+            date_from=self.date_from,
+            date_to=self.date_to
+        ).query()
+
+        serializer = FinanceReportSerializer(report)
         return Response(serializer.data)

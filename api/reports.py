@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from .base_classes import BaseReport
 from .helper import check_date_params, check_bool_params, get_company
+from settings.models import Tariff
 
 logger = logging.getLogger(__name__)
 
@@ -279,4 +280,60 @@ class BitrixReport(BaseReport):
             'count': len(rows),
             'sum': sum(float(row[6]) for row in rows)
         }
+        return self
+
+
+class FinanceReport(BaseReport):
+    def __init__(self, date_from=None, date_to=None, *args, **kwargs):
+        super(FinanceReport, self).__init__(db_type='', *args, **kwargs)
+        self.report_type = 'finance_report'
+        self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
+        self.errors += errors
+
+    def query(self):
+        if self.errors:
+            self.status = 'error'
+            return self
+
+        companies = Companies('aqua').query()
+
+        total_reports = []
+        for company_id in companies.data.report:
+            report = TotalReport(
+                db_type='aqua',
+                company_id=company_id,
+                date_from=self.data.date_from.strftime('%Y-%m-%d'),
+                date_to=self.data.date_to.strftime('%Y-%m-%d'),
+                hide_zero=self.data.hide_zero,
+                hide_internal=self.data.hide_internal
+            ).query()
+            total_reports.append(report)
+
+        report_bitrix = BitrixReport(
+            db_type='bitrix',
+            date_from=self.data.date_from.strftime('%Y-%m-%d'),
+            date_to=self.data.date_to.strftime('%Y-%m-%d')
+        ).query()
+
+        products = {}
+        for total_report in total_reports:
+            for _, product_groups in total_report.data.report.items():
+                for _, product_group in product_groups.items():
+                    for product_name, product in product_group.items():
+                        products[product_name] = product
+
+        report = {}
+        for tariff in Tariff.objects.all():
+            category = tariff.finance_report_category.title
+            report.setdefault(category, {'count': 0, 'sum': 0})
+            if tariff.title in products:
+                report[category]['count'] += 0 if tariff.title == 'Депозит' \
+                    else products[tariff.title]['count']
+                report[category]['sum'] += products[tariff.title]['sum']
+            if tariff.title == 'Битрикс':
+                report[category]['count'] += report_bitrix.data.report['count']
+                report[category]['sum'] += report_bitrix.data.report['sum']
+
+        self.status = 'ok'
+        self.data.report = report
         return self

@@ -83,3 +83,12 @@ class BitrixReportDataSerializer(ReportSerializer):
 
 class BitrixReportSerializer(RootSerializer):
     data = BitrixReportDataSerializer()
+
+
+class FinanceReportDataSerializer(ReportSerializer):
+    date_from = DateTimeField()
+    date_to = DateTimeField()
+
+
+class FinanceReportSerializer(RootSerializer):
+    data = FinanceReportDataSerializer()
