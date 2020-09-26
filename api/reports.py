@@ -286,9 +286,10 @@ class BitrixReport(BaseReport):
 
 
 class FinanceReport(BaseReport):
-    def __init__(self, date_from=None, date_to=None, *args, **kwargs):
+    def __init__(self, company_ids=None, date_from=None, date_to=None, *args, **kwargs):
         super(FinanceReport, self).__init__(db_type='', *args, **kwargs)
         self.report_type = 'finance_report'
+        self.company_ids = company_ids
         self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
         self.errors += errors
 
@@ -297,10 +298,11 @@ class FinanceReport(BaseReport):
             self.status = 'error'
             return self
 
-        companies = Companies('aqua').query()
+        if not self.company_ids:
+            self.company_ids = Companies('aqua').query().data.report
 
         total_reports = []
-        for company_id in companies.data.report:
+        for company_id in self.company_ids:
             report = TotalReport(
                 db_type='aqua',
                 company_id=company_id,
@@ -352,11 +354,13 @@ class FinanceReportByDay(BaseReport):
             return self
 
         period = period_partition(self.data.date_from, self.data.date_to)
+        company_ids = Companies('aqua').query().data.report
 
         report = []
         for date in period:
             report.append(
                 FinanceReport(
+                    company_ids=company_ids,
                     date_from=date.strftime('%Y-%m-%d'),
                     date_to=(date + timedelta(1)).strftime('%Y-%m-%d')
                 ).query().data.report
