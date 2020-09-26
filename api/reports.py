@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal
 
 from .base_classes import BaseReport
-from .helper import check_date_params, check_bool_params, get_company
+from .helper import check_date_params, check_bool_params, get_company, convert_total_reports_to_product_dict
 from settings.models import Tariff
 
 logger = logging.getLogger(__name__)
@@ -315,24 +315,21 @@ class FinanceReport(BaseReport):
             date_to=self.data.date_to.strftime('%Y-%m-%d')
         ).query()
 
-        products = {}
-        for total_report in total_reports:
-            for _, product_groups in total_report.data.report.items():
-                for _, product_group in product_groups.items():
-                    for product_name, product in product_group.items():
-                        products[product_name] = product
+        products = convert_total_reports_to_product_dict(total_reports)
 
         report = {}
         for tariff in Tariff.objects.all():
             category = tariff.finance_report_category.title
-            report.setdefault(category, {'count': 0, 'sum': 0})
+            elem = report.setdefault(category, {'count': 0, 'sum': 0})
+
             if tariff.title in products:
-                report[category]['count'] += 0 if tariff.title == 'Депозит' \
+                elem['count'] += 0 if tariff.title == 'Депозит' \
                     else products[tariff.title]['count']
-                report[category]['sum'] += products[tariff.title]['sum']
+                elem['sum'] += products[tariff.title]['sum']
+
             if tariff.title == 'Битрикс':
-                report[category]['count'] += report_bitrix.data.report['count']
-                report[category]['sum'] += report_bitrix.data.report['sum']
+                elem['count'] += report_bitrix.data.report['count']
+                elem['sum'] += report_bitrix.data.report['sum']
 
         self.status = 'ok'
         self.data.report = report
