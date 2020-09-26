@@ -323,18 +323,33 @@ class FinanceReport(BaseReport):
 
         report = {}
         for tariff in Tariff.objects.all():
-            category = tariff.finance_report_category.title
-            elem = report.setdefault(category, {'count': 0, 'sum': 0})
+            category = report.setdefault(tariff.finance_report_category.title, {})
+            category_total = category.setdefault('total', {'count': 0, 'sum': 0})
 
             if tariff.title in products:
-                elem['count'] += 0 if tariff.title == 'Депозит' \
-                    else products[tariff.title]['count']
-                elem['sum'] += products[tariff.title]['sum']
+                group = category.setdefault(products[tariff.title]['group'], {})
+                group_total = group.setdefault('total', {'count': 0, 'sum': 0})
+                group[tariff.title] = {
+                    'count': products[tariff.title]['count'],
+                    'sum': products[tariff.title]['sum']
+                }
+                group_total['count'] += 0 if tariff.title == 'Депозит' else products[tariff.title]['count']
+                group_total['sum'] += products[tariff.title]['sum']
+                category_total['count'] += 0 if tariff.title == 'Депозит' else products[tariff.title]['count']
+                category_total['sum'] += products[tariff.title]['sum']
 
             if tariff.title == 'Битрикс':
                 bitrix_data = report_bitrix.data.report
-                elem['count'] += bitrix_data['count'] if bitrix_data else 0
-                elem['sum'] += bitrix_data['sum'] if bitrix_data else 0
+                group = category.setdefault('Продажи Bitrix', {})
+                group_total = group.setdefault('total', {'count': 0, 'sum': 0})
+                group['Продажи Bitrix'] = {
+                    'count': bitrix_data['count'] if bitrix_data else 0,
+                    'sum': bitrix_data['sum'] if bitrix_data else 0
+                }
+                group_total['count'] += bitrix_data['count'] if bitrix_data else 0
+                group_total['sum'] += bitrix_data['sum'] if bitrix_data else 0
+                category_total['count'] += bitrix_data['count'] if bitrix_data else 0
+                category_total['sum'] += bitrix_data['sum'] if bitrix_data else 0
 
         self.status = 'ok'
         self.data.report = report

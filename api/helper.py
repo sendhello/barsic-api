@@ -48,9 +48,10 @@ def convert_total_reports_to_product_dict(total_reports: List):
     products = {}
     for total_report in total_reports:
         for _, product_groups in total_report.data.report.items():
-            for _, product_group in product_groups.items():
+            for group_name, product_group in product_groups.items():
                 for product_name, product in product_group.items():
                     products[product_name] = product
+                    products[product_name]['group'] = group_name
 
     return products
 
