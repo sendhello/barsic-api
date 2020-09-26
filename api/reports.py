@@ -96,6 +96,7 @@ class TotalReport(BaseReport):
         if self.errors:
             self.status = 'error'
             return self
+
         companies = Companies(self.db_type).query().data.report
         self.data.company_name, errors = get_company(self.company_id, companies)
         self.errors += errors
@@ -245,4 +246,37 @@ class CashReport(BaseReport):
 
         self.status = 'ok'
         self.data.report = report
+        return self
+
+
+class BitrixReport(BaseReport):
+    def __init__(self, date_from=None, date_to=None, *args, **kwargs):
+        super(BitrixReport, self).__init__(*args, **kwargs)
+        self.report_type = 'bitrix_report'
+        self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
+        self.errors += errors
+
+    def query(self):
+        if self.errors:
+            self.status = 'error'
+            return self
+
+        rows = self._query(
+            request=f"""{''}
+                SELECT Id, OrderNumber, ProductId, ProductName, OrderDate, PayDate, Sum, Pay, Status, Client
+                FROM Transactions
+                WHERE (PayDate >= '{self.data.date_from.strftime('%Y%m%d 00:00:00')}')
+                    and(PayDate < '{self.data.date_to.strftime('%Y%m%d 00:00:00')}')
+            """
+        )
+
+        if not rows:
+            self.status = 'empty'
+            return self
+
+        self.status = 'ok'
+        self.data.report = {
+            'count': len(rows),
+            'sum': sum(float(row[6]) for row in rows)
+        }
         return self

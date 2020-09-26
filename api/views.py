@@ -4,11 +4,13 @@ from typing import Optional, List
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from api.reports import PeopleInZone, Companies, TotalReport, ClientCountReport, CashReport, ServicePointsReport
+from api.reports import (
+    PeopleInZone, Companies, TotalReport, ClientCountReport, CashReport, ServicePointsReport, BitrixReport)
 from .serializers import (
     PeopleInZoneSerializer, CompanySerializer, TotalReportSerializer, CashReportSerializer,
-    ServicePointsReportSerializer, ClientCountReportSerializer
+    ServicePointsReportSerializer, ClientCountReportSerializer, BitrixReportSerializer
 )
+import re
 
 
 class BaseViewSet(ViewSet, ABC):
@@ -39,6 +41,10 @@ class BaseViewSet(ViewSet, ABC):
         for request_param in request.GET.keys():
             if request_param not in self.allowed_request_params:
                 self.errors.append(f'Параметр {request_param} не является разрешенным для данного запроса')
+
+        for date in [self.date_from, self.date_to]:
+            if date and not re.match(r'\d{4}-\d{2}-\d{2}', date):
+                self.errors.append(f'Неверный формат даты {date}. Введите дату в формате "YYYY-MM-DD"')
 
     def raise_error(self):
         return Response({'status': 'error', 'errors': self.errors, 'data': None})
@@ -189,4 +195,23 @@ class CashReportView(BaseViewSet):
             date_to=self.date_to
         ).query()
         serializer = CashReportSerializer(report)
+        return Response(serializer.data)
+
+
+class BitrixReportView(BaseViewSet):
+    def __init__(self, *args, **kwargs):
+        super(BitrixReportView, self).__init__(*args, **kwargs)
+        self.allowed_request_params.extend(['date_from', 'date_to'])
+
+    def list(self, request):
+        super(BitrixReportView, self).list(request)
+        if self.errors:
+            return self.raise_error()
+
+        report = BitrixReport(
+            db_type=self.db_type,
+            date_from=self.date_from,
+            date_to=self.date_to
+        ).query()
+        serializer = BitrixReportSerializer(report)
         return Response(serializer.data)

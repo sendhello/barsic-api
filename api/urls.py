@@ -2,10 +2,11 @@ from rest_framework.routers import DefaultRouter
 
 from api.views import (
     PeopleInZoneView, CompanyView, TotalReportView, TotalReportsView, ClientCountReportView, ClientCountReportsView,
-    CashReportView, ServicePointsReportView
+    CashReportView, ServicePointsReportView, BitrixReportView
 )
 
 router = DefaultRouter()
+router.register(r'bitrix-reports', BitrixReportView, basename='bitrix_reports')
 router.register(r'cash-report', CashReportView, basename='cash_report')
 router.register(r'client-count-report', ClientCountReportView, basename='client_count_report')
 router.register(r'client-count-reports', ClientCountReportsView, basename='client_count_reports')

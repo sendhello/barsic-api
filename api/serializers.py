@@ -20,15 +20,6 @@ class ReportSerializer(BaseSerializer):
     db_name = CharField()
 
 
-class DateMixin:
-    date_from = DateTimeField()
-    date_to = DateTimeField()
-
-
-class DbNameMixin:
-    db_name = CharField()
-
-
 class PeopleInZoneDataSerializer(ReportSerializer):
     pass
 
@@ -37,7 +28,7 @@ class PeopleInZoneSerializer(RootSerializer):
     data = PeopleInZoneDataSerializer()
 
 
-class CompanyDataSerializer(ReportSerializer, DbNameMixin):
+class CompanyDataSerializer(ReportSerializer):
     pass
 
 
@@ -45,35 +36,50 @@ class CompanySerializer(RootSerializer):
     data = CompanyDataSerializer()
 
 
-class TotalReportDataSerializer(ReportSerializer, DbNameMixin, DateMixin):
+class TotalReportDataSerializer(ReportSerializer):
     company_name = CharField()
     hide_zero = BooleanField()
     hide_internal = BooleanField()
+    date_from = DateTimeField()
+    date_to = DateTimeField()
 
 
 class TotalReportSerializer(RootSerializer):
     data = TotalReportDataSerializer()
 
 
-class ClientCountReportDataSerializer(ReportSerializer,DbNameMixin, DateMixin):
+class ClientCountReportDataSerializer(ReportSerializer):
     company_name = CharField()
+    date_from = DateTimeField()
+    date_to = DateTimeField()
 
 
 class ClientCountReportSerializer(RootSerializer):
     data = ClientCountReportDataSerializer()
 
 
-class CashReportDataSerializer(ReportSerializer, DbNameMixin, DateMixin):
-    pass
+class CashReportDataSerializer(ReportSerializer):
+    date_from = DateTimeField()
+    date_to = DateTimeField()
 
 
 class CashReportSerializer(RootSerializer):
     data = CashReportDataSerializer()
 
 
-class ServicePointsReportDataSerializer(ReportSerializer, DbNameMixin):
+class ServicePointsReportDataSerializer(ReportSerializer):
     pass
 
 
 class ServicePointsReportSerializer(RootSerializer):
     data = ServicePointsReportDataSerializer()
+
+
+# Bitrix
+class BitrixReportDataSerializer(ReportSerializer):
+    date_from = DateTimeField()
+    date_to = DateTimeField()
+
+
+class BitrixReportSerializer(RootSerializer):
+    data = BitrixReportDataSerializer()
