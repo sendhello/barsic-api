@@ -47,7 +47,7 @@ class BaseViewSet(ViewSet, ABC):
 
         for date in [self.date_from, self.date_to]:
             if date and not re.match(r'\d{4}-\d{2}-\d{2}', date):
-                self.errors.append(f'Неверный формат даты {date}. Введите дату в формате "YYYY-MM-DD"')
+                self.errors.append(f"Неверный формат даты {date}. Введите дату в формате 'YYYY-MM-DD'")
 
     def raise_error(self):
         return Response({'status': 'error', 'errors': self.errors, 'data': None})

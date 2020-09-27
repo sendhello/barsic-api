@@ -43,7 +43,7 @@ class PeopleInZone(BaseReport):
                 """
         )
         self.data.report = {row[2]: row[1] for row in rows} or {'Все зоны': 0}
-        self.status = 'ok' if not self.status else self.status
+        self.status = 'ok'
         return self
 
 
