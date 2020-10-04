@@ -1,14 +1,12 @@
-import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional, Tuple, List, Any, Dict
 
 import pyodbc
 from django.core.exceptions import ObjectDoesNotExist
+from loguru import logger
 
 from settings.models import DataBase
-
-logger = logging.getLogger(__name__)
 
 
 class ReportData:
@@ -38,7 +36,15 @@ class BaseReport(ABC):
         conn = pyodbc.connect(connect_string)
         return conn.cursor()
 
+    def check_errors(self, report) -> bool:
+        if report.errors:
+            self.errors.extend(report.errors)
+            self.status = 'error'
+            return True
+        return False
+
     def _query(self, request: str) -> List[Any]:
+        logger.info(f'Run query for {self.__class__.__name__}')
         try:
             db = DataBase.objects.get(type=self.db_type)
         except ObjectDoesNotExist:

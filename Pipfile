@@ -15,6 +15,7 @@ sqlparse = "*"
 psycopg2 = "*"
 Django = "*"
 djangorestframework = "*"
+loguru = "*"
 
 [requires]
 python_version = "3.7"

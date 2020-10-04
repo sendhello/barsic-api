@@ -1,13 +1,12 @@
-import logging
 from datetime import timedelta
 from decimal import Decimal
+from typing import Dict, List, Any, Optional, Union
 
+from loguru import logger
 from settings.models import Tariff
 from .base_classes import BaseReport
 from .helper import (
     check_date_params, check_bool_params, get_company, convert_total_reports_to_product_dict, period_partition)
-
-logger = logging.getLogger(__name__)
 
 
 class PeopleInZone(BaseReport):
@@ -84,10 +83,20 @@ class Companies(BaseReport):
 
 
 class TotalReport(BaseReport):
-    def __init__(self, company_id, date_from=None, date_to=None, hide_zero=None, hide_internal=None, *args, **kwargs):
+    def __init__(
+            self,
+            company_id: str,
+            companies: Optional[Dict] = None,
+            date_from: Optional[str] = None,
+            date_to: Optional[str] = None,
+            hide_zero: Optional[str] = None,
+            hide_internal: Optional[str] = None,
+            *args, **kwargs
+    ):
         super(TotalReport, self).__init__(*args, **kwargs)
         self.report_type = 'total_report'
         self.company_id = company_id
+        self.companies = companies
         self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
         self.errors += errors
         self.data.hide_zero, errors = check_bool_params(hide_zero)
@@ -100,8 +109,18 @@ class TotalReport(BaseReport):
             self.status = 'error'
             return self
 
-        companies = Companies(self.db_type).query().data.report
-        self.data.company_name, errors = get_company(self.company_id, companies)
+        if not self.companies:
+            companies_report = Companies(self.db_type).query()
+            self.errors.extend(companies_report.errors)
+
+            if self.errors:
+                self.status = 'error'
+                return self
+
+            self.companies = companies_report.data.report
+
+        self.data.company_name, errors = get_company(self.company_id, self.companies)
+
         self.errors += errors
         if self.errors:
             self.status = 'error'
@@ -286,10 +305,16 @@ class BitrixReport(BaseReport):
 
 
 class FinanceReport(BaseReport):
-    def __init__(self, company_ids=None, date_from=None, date_to=None, *args, **kwargs):
+    def __init__(
+            self,
+            companies: Optional[Dict] = None,
+            date_from: Optional[str] = None,
+            date_to: Optional[str] = None,
+            *args, **kwargs
+    ):
         super(FinanceReport, self).__init__(db_type='', *args, **kwargs)
         self.report_type = 'finance_report'
-        self.company_ids = company_ids
+        self.companies = companies
         self.data.date_from, self.data.date_to, errors = check_date_params(date_from, date_to)
         self.errors += errors
 
@@ -298,26 +323,40 @@ class FinanceReport(BaseReport):
             self.status = 'error'
             return self
 
-        if not self.company_ids:
-            self.company_ids = Companies('aqua').query().data.report
+        if not self.companies:
+            companies_report = Companies(db_type='aqua').query()
+            self.errors.extend(companies_report.errors)
+
+            if self.errors:
+                self.status = 'error'
+                return self
+
+            self.companies = companies_report.data.report
 
         total_reports = []
-        for company_id in self.company_ids:
-            report = TotalReport(
+        for company_id in self.companies:
+            total_report = TotalReport(
                 db_type='aqua',
                 company_id=company_id,
+                companies=self.companies,
                 date_from=self.data.date_from.strftime('%Y-%m-%d'),
                 date_to=self.data.date_to.strftime('%Y-%m-%d'),
                 hide_zero=self.data.hide_zero,
                 hide_internal=self.data.hide_internal
             ).query()
-            total_reports.append(report)
+            self.errors.extend(total_report.errors)
+            total_reports.append(total_report)
 
         report_bitrix = BitrixReport(
             db_type='bitrix',
             date_from=self.data.date_from.strftime('%Y-%m-%d'),
             date_to=self.data.date_to.strftime('%Y-%m-%d')
         ).query()
+        self.errors.extend(report_bitrix.errors)
+
+        if self.errors:
+            self.status = 'error'
+            return self
 
         products = convert_total_reports_to_product_dict(total_reports)
 
@@ -369,17 +408,27 @@ class FinanceReportByDay(BaseReport):
             return self
 
         period = period_partition(self.data.date_from, self.data.date_to)
-        company_ids = Companies('aqua').query().data.report
+
+        companies_report = Companies(db_type='aqua').query()
+        self.errors.extend(companies_report.errors)
+        if self.errors:
+            self.status = 'error'
+            return self
 
         report = []
         for date in period:
-            report.append(
-                FinanceReport(
-                    company_ids=company_ids,
-                    date_from=date.strftime('%Y-%m-%d'),
-                    date_to=(date + timedelta(1)).strftime('%Y-%m-%d')
-                ).query().data.report
-            )
+            finance_report = FinanceReport(
+                companies=companies_report.data.report,
+                date_from=date.strftime('%Y-%m-%d'),
+                date_to=(date + timedelta(1)).strftime('%Y-%m-%d')
+            ).query()
+
+            self.errors.extend(finance_report.errors)
+            report.append(finance_report.data.report)
+
+            if self.errors:
+                self.status = 'error'
+                return self
 
         self.status = 'ok'
         self.data.report = report
