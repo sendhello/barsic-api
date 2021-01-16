@@ -12,10 +12,11 @@ django-summernote = "*"
 pyodbc = "*"
 pytz = "*"
 sqlparse = "*"
-psycopg2 = "*"
+psycopg2-binary = "*"
 Django = "*"
 djangorestframework = "*"
 loguru = "*"
+django-environ = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.9"

@@ -1,15 +1,23 @@
 import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+import environ
 
-# SECRET_KEY='django'
-SECRET_KEY = os.getenv('SECRET_KEY', 'django')
+root = environ.Path(__file__) - 3  # get root of the project
+env = environ.Env()
+environ.Env.read_env()  # reading .env file
+public_root = root.path('public/')
 
-# DEBUG=1
-DEBUG = os.getenv('DEBUG', False)
+SITE_ROOT = root()
 
-# ALLOWED_HOSTS='127.0.0.1:192.168.1.1'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(':')
+# SECRET_KEY=django
+SECRET_KEY = env.str('SECRET_KEY', default='django')
+
+# DEBUG=True
+DEBUG = env.bool('DEBUG', default=False)
+TEMPLATE_DEBUG = DEBUG
+
+# ALLOWED_HOSTS=127.0.0.1:192.168.1.1
+ALLOWED_HOSTS = env.str('ALLOWED_HOSTS', default='*').split(':')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -55,15 +63,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.getenv('POSTGRES_DB', 'test'),
-        'USER': os.getenv('POSTGRES_USER', 'test'),
-        'PASSWORD': os.getenv('POSTGRES_PASS', 'root'),
-        'HOST': 'db'
-    }
-}
+DATABASES = {'default': env.db('DATABASE_URL', default="sqlite:///data.db")}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -86,12 +86,18 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-STATIC_URL = '/static/'
+STATIC_ROOT = public_root('static')
+STATIC_URL = env.str('STATIC_URL', default='static/')
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
+    os.path.join(SITE_ROOT, 'static'),
 ]
 
-GET_PARAM_DB = 'db'
+MEDIA_ROOT = public_root('media')
+MEDIA_URL = env.str('MEDIA_URL', default='media/')
 
-# ADMINS='admin::admin1234,vasya:vasya@mail.ru:vasya123'
-ADMINS = os.getenv('ADMINS', 'admin::admin1234')
+# CACHES = {'default': env.cache('REDIS_CACHE_URL')}
+
+# GET_PARAM_DB = 'db'
+
+# ADMINS=admin::admin1234,vasya:vasya@mail.ru:vasya123
+ADMINS = env.str('ADMINS', default='admin::admin1234')
